@@ -1,15 +1,14 @@
-[tool.poetry]
-name = "sample-project"
+[project]
+name = "rebuildr"
 version = "0.1.0"
 description = ""
-authors = ["Author Name <author@example.com>"]
-# readme = "README.md"
-# license = "BSD"
-packages = [{ include = "sample_package" }]
-
-[tool.poetry.dependencies]
-python = "^3.10"
+requires-python = ">=3.12"
+authors = [{ name = "Paweł Chojnacki", email = "pawelchcki@gmail.com" }]
+dependencies = ["typer >= 0.15.1"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+rebuildr = "rebuildr.cli:app"
