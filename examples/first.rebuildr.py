@@ -8,7 +8,7 @@ image = Descriptor(
             EnvInput(key="DOCKER_QUIET"),
         ],
         files=[
-            FileInput(path="test.txt"),
+            "test.txt",
         ],
         dockerfile="first.Dockerfile",
     ),
