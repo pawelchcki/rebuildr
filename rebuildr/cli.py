@@ -1,5 +1,6 @@
 from dataclasses import asdict
 import json
+import logging
 import os
 from rebuildr.descriptor import Descriptor
 # typer is used to speed up development - ideally for ease of embedding
@@ -9,38 +10,61 @@ import importlib.util
 import sys
 
 
-def hello(name: str):
-    print(f"Hello {name}")
 
+def load_py(path: str) -> Descriptor:
+    spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["rebuildr.external.desc"] = module
+    spec.loader.exec_module(module)
+    absolute_dirname = os.path.dirname(os.path.abspath(path))
+    image = module.image.postprocess_paths(absolute_dirname)
+
+    return image
 
 def parse_py(path: str) -> Descriptor:
-    spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
-    foo = importlib.util.module_from_spec(spec)
-    sys.modules["rebuildr.external.desc"] = foo
-    spec.loader.exec_module(foo)
-    absolute_dirname = os.path.dirname(os.path.abspath(path))
-    image = foo.image.postprocess_paths(absolute_dirname)
-
+    desc = load_py(path)
+    
     data = {
-        "image": asdict(foo.image),
-        "sha256": image.sha_sum(),
+        "image": asdict(desc),
+        "sha256": desc.sha_sum(),
     }
 
     print(json.dumps(data, indent=4, sort_keys=True))
+    return desc
 
-    return foo.image
+def built_ctx(path: str):
+    desc = load_py(path)
+    
 
+    return
 
-def main():
+def print_usage():
+    print("Usage: rebuildr <command> <args>")
+    print("Commands:")
+    print("  parse-py <path>")
+    return
+
+def parse_cli():
     args = sys.argv[1:]
     if len(args) == 0:
-        print("No arguments provided")
-        print("Usage: rebuildr <command> <args>")
-        print("Commands:")
-        print("  parse-py <path>")
+        logging.error("No arguments provided")
+
+        print_usage()
         return
+
     if args[0] == "parse-py":
         if len(args) < 2:
-            print("No path provided")
+            logging.error("No path provided")
             return
         parse_py(args[1])
+        return
+    
+
+    logging.error(f"Unknown command: {args[0]}")
+    print_usage()
+    return
+
+def main():
+    logging.basicConfig(level=logging.DEBUG)
+    parse_cli()
+

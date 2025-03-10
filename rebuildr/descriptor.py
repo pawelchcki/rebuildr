@@ -1,5 +1,6 @@
 import hashlib
 import os
+from pathlib import PurePath
 from typing import Optional
 
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ class EnvInput:
 @dataclass
 class FileInput:
     path: str
+    _relative_path: Optional[PurePath] = None
 
     def read_to_string(self):
         with open(self.path, "r") as f:
@@ -71,7 +73,9 @@ class Descriptor:
 
     def postprocess_paths(self, root_path):
         for file in self.inputs.files:
+            file._relative_path = PurePath(file.path)
             file.path = os.path.join(root_path, file.path)
+
         if isinstance(self.inputs.dockerfile, Dockerfile):
             self.inputs.dockerfile.path = os.path.join(
                 root_path, self.inputs.dockerfile.path

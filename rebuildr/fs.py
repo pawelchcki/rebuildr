@@ -1,28 +1,36 @@
-from pathlib import Path
+from pathlib import Path, PurePath
+import shutil
 import tempfile
 
-
-class File(object):
-    def __init__(self):
-        self.contents = contents
-        self.tmp_file = tempfile.NamedTemporaryFile()
-        self.tmp_file.write(self.contents.encode())
-        self.tmp_file.seek(0)
-
-    def path_in_container(self):
-        raise "todo"
-
-    def copy_to_staged_ctx(self, ctx):
-        raise "todo"
-
+from rebuildr.descriptor import Descriptor, FileInput
 
 class Context(object):
     def __init__(self, root_dir):
-        self.root_dir = root_dir
-        self.files = []
+        self.root_dir = PurePath(root_dir)
 
-    def add_file(self, file):
-        self.files.append(file)
+    def copy_to(self, src: PurePath, dest: PurePath):
+        # copy using python builtin src to root dir dest subpath
+        dest_path = self.root_dir / dest
+        dest_dir = dest_path.parent
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        
+        shutil.copy(src, dest_path)
 
-    def copy_to(self, dest):
-        raise "todo"
+    def prepare_from_descriptor(self, descriptor: Descriptor):
+        for file in descriptor.inputs.files:
+            dest_path = self.root_dir / file.relative_path
+
+
+            self.copy_to(file.path, file.relative_path)
+
+    def from_descriptor(self, descriptor: Descriptor):
+        for file in descriptor.inputs.files:
+            self.add_file(RegularFile(file.path, file.relative_path))
+
+
+
+        
+
+        
+
+
