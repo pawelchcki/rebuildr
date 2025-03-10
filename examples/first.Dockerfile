@@ -1,1 +1,3 @@
-FROM src
+FROM bash
+
+COPY / / 

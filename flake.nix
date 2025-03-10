@@ -1,81 +1,102 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    poetry2nix.url = "github:nix-community/poetry2nix";
     treefmt-nix.url = "github:numtide/treefmt-nix";
-
-    pyproject-nix = {
-      url = "github:pyproject-nix/pyproject.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    uv2nix = {
-      url = "github:pyproject-nix/uv2nix";
-      inputs.pyproject-nix.follows = "pyproject-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    pyproject-build-systems = {
-      url = "github:pyproject-nix/build-system-pkgs";
-      inputs.pyproject-nix.follows = "pyproject-nix";
-      inputs.uv2nix.follows = "uv2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    pre-commit-hooks.url = "github:cachix/git-hooks.nix";
+    pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     nixpkgs,
     systems,
-    poetry2nix,
     treefmt-nix,
-    uv2nix,
-    pyproject-nix,
-    pyproject-build-systems,
+    pre-commit-hooks,
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     pkgs = forAllSystems (system: nixpkgs.legacyPackages.${system});
-
-    # https://github.com/pyproject-nix/uv2nix/blob/master/templates/hello-world/flake.nix
-    workspace = uv2nix.lib.workspace.loadWorkspace {workspaceRoot = ./.;};
-    overlay = workspace.mkPyprojectOverlay {
-      sourcePreference = "wheel"; # or sourcePreference = "sdist";
-    };
-
     python3 = forAllSystems (system: pkgs.${system}.python312);
-
-    pythonSet = forAllSystems (system: let
-      python = python3.${system};
-      lib = pkgs.${system}.lib;
-    in
-      (pkgs.${system}.callPackage pyproject-nix.build.packages {
-        inherit python;
-      })
-      .overrideScope
-      (
-        lib.composeManyExtensions [
-          pyproject-build-systems.overlays.default
-          overlay
-          #   pyprojectOverrides
-        ]
-      ));
-
+    python3Packages = forAllSystems (system: python3.${system}.pkgs.pythonPackages);
     treefmtEval = forAllSystems (system: treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix);
+
+    rebuildr = forAllSystems (
+      system: attrs:
+        python3.${system}.pkgs.buildPythonApplication {
+          pname = "rebuildr";
+          version = "0.1";
+
+          inherit (attrs) doCheck;
+
+          src = ./.;
+          format = "pyproject";
+
+          build-system = with python3Packages.${system}; [
+            hatchling
+          ];
+
+          checkInputs = with python3Packages.${system}; [
+            pytestCheckHook
+          ];
+
+          propagatedBuildInputs = with pkgs.${system}; [
+            skopeo
+          ];
+        }
+    );
   in {
     packages = forAllSystems (system: {
-      default = pythonSet.${system}.mkVirtualEnv "rebuildr" workspace.deps.default;
+      default = rebuildr.${system} {
+        doCheck = false;
+      };
+
+      docker-image = pkgs.${system}.dockerTools.buildImage {
+        name = "rebuildr";
+        tag = "latest";
+
+        copyToRoot = pkgs.${system}.buildEnv {
+          name = "image-root";
+          paths = [self.packages.${system}.default];
+          pathsToLink = ["/bin"];
+        };
+
+        config = {
+          Cmd = ["/bin/rebuildr"];
+          WorkingDir = "/";
+        };
+      };
     });
 
     formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
 
+    checks = forAllSystems (system: {
+      default = rebuildr.${system} {
+        doCheck = true;
+      };
+
+      pre-commit-check = pre-commit-hooks.lib.${system}.run {
+        src = ./.;
+        hooks = {
+          # nixpkgs-fmt.enable = true;
+          treefmt.package = treefmtEval.${system}.config.build.wrapper;
+          treefmt.enable = true;
+        };
+      };
+    });
+
     devShells = forAllSystems (system: let
-      inherit (poetry2nix.lib.mkPoetry2Nix {pkgs = pkgs.${system};}) mkPoetryEnv;
+      _pkgs = pkgs.${system};
     in {
-      default = pkgs.${system}.mkShellNoCC {
-        packages = with pkgs.${system}; [
+      default = _pkgs.mkShellNoCC {
+        inherit (self.checks.${system}.pre-commit-check) shellHook;
+
+        packages = with _pkgs; [
           uv
+          git
         ];
+
+        buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;
 
         env = {
           # Don't create venv using uv
