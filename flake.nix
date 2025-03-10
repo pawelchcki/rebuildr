@@ -44,27 +44,25 @@
     };
 
     python3 = forAllSystems (system: pkgs.${system}.python312);
-
-    pythonSet = forAllSystems (system: let
-      python = python3.${system};
-      lib = pkgs.${system}.lib;
-    in
-      (pkgs.${system}.callPackage pyproject-nix.build.packages {
-        inherit python;
-      })
-      .overrideScope
-      (
-        lib.composeManyExtensions [
-          pyproject-build-systems.overlays.default
-          overlay
-          #   pyprojectOverrides
-        ]
-      ));
-
+    python3Packages = forAllSystems (system: python3.${system}.pkgs.pythonPackages);
     treefmtEval = forAllSystems (system: treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix);
   in {
     packages = forAllSystems (system: {
-      default = pythonSet.${system}.mkVirtualEnv "rebuildr" workspace.deps.default;
+      default = python3.${system}.pkgs.buildPythonApplication {
+        pname = "rebuildr";
+        version = "0.1";
+
+        src = ./.;
+        format = "pyproject";
+        build-system = with python3Packages.${system}; [
+          hatchling
+        ];
+
+        propagatedBuildInputs = with python3Packages.${system}; [
+        ];
+
+        setuptoolsCheckPhase = "true";
+      };
     });
 
     formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);

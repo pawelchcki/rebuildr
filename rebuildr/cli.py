@@ -2,22 +2,17 @@ from dataclasses import asdict
 import json
 import os
 from rebuildr.descriptor import Descriptor
-import typer
 # typer is used to speed up development - ideally for ease of embedding
 # we shouldn't rely on 3rd party code a lot
 
 import importlib.util
 import sys
 
-app = typer.Typer()
 
-
-@app.command()
 def hello(name: str):
     print(f"Hello {name}")
 
 
-@app.command()
 def parse_py(path: str) -> Descriptor:
     spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
     foo = importlib.util.module_from_spec(spec)
@@ -34,3 +29,18 @@ def parse_py(path: str) -> Descriptor:
     print(json.dumps(data, indent=4, sort_keys=True))
 
     return foo.image
+
+
+def main():
+    args = sys.argv[1:]
+    if len(args) == 0:
+        print("No arguments provided")
+        print("Usage: rebuildr <command> <args>")
+        print("Commands:")
+        print("  parse-py <path>")
+        return
+    if args[0] == "parse-py":
+        if len(args) < 2:
+            print("No path provided")
+            return
+        parse_py(args[1])
