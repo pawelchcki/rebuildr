@@ -1,6 +1,8 @@
 from dataclasses import asdict
 import json
+import logging
 import os
+from pathlib import Path
 from rebuildr.descriptor import Descriptor
 # typer is used to speed up development - ideally for ease of embedding
 # we shouldn't rely on 3rd party code a lot
@@ -8,39 +10,67 @@ from rebuildr.descriptor import Descriptor
 import importlib.util
 import sys
 
+from rebuildr.fs import Context
 
-def hello(name: str):
-    print(f"Hello {name}")
+
+def load_py_desc(path: str) -> Descriptor:
+    spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["rebuildr.external.desc"] = module
+    spec.loader.exec_module(module)
+    absolute_dirname = Path(os.path.dirname(os.path.abspath(path)))
+    image = module.image.postprocess_paths(absolute_dirname)
+
+    return image
 
 
 def parse_py(path: str) -> Descriptor:
-    spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
-    foo = importlib.util.module_from_spec(spec)
-    sys.modules["rebuildr.external.desc"] = foo
-    spec.loader.exec_module(foo)
-    absolute_dirname = os.path.dirname(os.path.abspath(path))
-    image = foo.image.postprocess_paths(absolute_dirname)
+    desc = load_py_desc(path)
 
-    data = {
-        "image": asdict(foo.image),
-        "sha256": image.sha_sum(),
-    }
+    data = desc.as_dict()
 
     print(json.dumps(data, indent=4, sort_keys=True))
+    return desc
 
-    return foo.image
+
+def built_ctx(path: str):
+    desc = load_py_desc(path)
+    ctx = Context.temp()
+    ctx.prepare_from_descriptor(desc)
+
+    cmd = "echo ls"
+    # run cmd
+
+    return
+
+
+def print_usage():
+    print("Usage: rebuildr <command> <args>")
+    print("Commands:")
+    print("  parse-py <path>")
+    return
+
+
+def parse_cli():
+    args = sys.argv[1:]
+    if len(args) == 0:
+        logging.error("No arguments provided")
+
+        print_usage()
+        return
+
+    if args[0] == "parse-py":
+        if len(args) < 2:
+            logging.error("No path provided")
+            return
+        parse_py(args[1])
+        return
+
+    logging.error(f"Unknown command: {args[0]}")
+    print_usage()
+    return
 
 
 def main():
-    args = sys.argv[1:]
-    if len(args) == 0:
-        print("No arguments provided")
-        print("Usage: rebuildr <command> <args>")
-        print("Commands:")
-        print("  parse-py <path>")
-        return
-    if args[0] == "parse-py":
-        if len(args) < 2:
-            print("No path provided")
-            return
-        parse_py(args[1])
+    logging.basicConfig(level=logging.DEBUG)
+    parse_cli()
