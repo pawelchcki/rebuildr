@@ -1,4 +1,3 @@
-
 import logging
 import os
 from pathlib import Path
@@ -77,7 +76,7 @@ class DockerCLIBuilder(object):
         with open(str(iidfile)) as f:
             line = f.readline()
             image_id = line.split(":")[1].strip()
-        
+
         return image_id
 
 
