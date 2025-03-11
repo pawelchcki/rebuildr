@@ -3,7 +3,8 @@ import json
 import logging
 import os
 from pathlib import Path
-from rebuildr.descriptor import Descriptor
+from rebuildr.build import DockerCLIBuilder
+from rebuildr.descriptor import Descriptor, TagTarget
 # typer is used to speed up development - ideally for ease of embedding
 # we shouldn't rely on 3rd party code a lot
 
@@ -38,8 +39,25 @@ def built_ctx(path: str):
     ctx = Context.temp()
     ctx.prepare_from_descriptor(desc)
 
-    cmd = "echo ls"
-    # run cmd
+    builder = DockerCLIBuilder()
+    tags = []
+    for tgt in desc.targets:
+        if isinstance(tgt, TagTarget):
+            # by default tag with content_id
+            tag = tgt.repository + ":src-id-" + desc.inputs.sha_sum()
+
+            tags.append(tag)
+            if tgt.tag:
+                tags.append(tgt.repository + ":" + tgt.tag)
+
+    iid = builder.build(
+        root_dir=ctx.root_dir,
+        dockerfile=None
+        if desc.inputs.dockerfile is None
+        else desc.inputs.dockerfile.path,
+        tags=tags,
+    )
+    print(iid)
 
     return
 
@@ -64,6 +82,13 @@ def parse_cli():
             logging.error("No path provided")
             return
         parse_py(args[1])
+        return
+
+    if args[0] == "build-py":
+        if len(args) < 2:
+            logging.error("No path provided")
+            return
+        built_ctx(args[1])
         return
 
     logging.error(f"Unknown command: {args[0]}")

@@ -76,8 +76,15 @@ class Inputs:
 
 
 @dataclass
+class TagTarget:
+    repository: str
+    tag: Optional[str] = None
+
+
+@dataclass
 class Descriptor:
     inputs: Inputs
+    targets: Optional[list[TagTarget]] = None
 
     def sha_sum(self):
         return self.inputs.sha_sum()
@@ -114,13 +121,9 @@ class Descriptor:
                     self.inputs.files.append(fi)
 
         if isinstance(self.inputs.dockerfile, Dockerfile):
-            self.inputs.dockerfile.path = os.path.join(
-                root_path, self.inputs.dockerfile.path
-            )
+            self.inputs.dockerfile.path = root_path / self.inputs.dockerfile.path
         else:
-            self.inputs.dockerfile = Dockerfile(
-                os.path.join(root_path, self.inputs.dockerfile)
-            )
+            self.inputs.dockerfile = Dockerfile(root_path / self.inputs.dockerfile)
         return self
 
 
