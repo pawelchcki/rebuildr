@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import tarfile
 from rebuildr.build import DockerCLIBuilder
 from rebuildr.descriptor import Descriptor, TagTarget
 # typer is used to speed up development - ideally for ease of embedding
@@ -11,7 +12,7 @@ from rebuildr.descriptor import Descriptor, TagTarget
 import importlib.util
 import sys
 
-from rebuildr.fs import Context
+from rebuildr.fs import Context, TarContext
 from rebuildr.stable_descriptor import StableDescriptor
 
 
@@ -29,11 +30,12 @@ def load_py_desc(path: str) -> StableDescriptor:
 
 def parse_py(path: str) -> Descriptor:
     desc = load_py_desc(path)
+    data = desc.stable_inputs_dict()
 
-    json = desc.stable_json()
-
-    print(json)
+    print(json.dumps(data, indent=4, sort_keys=True))
     return desc
+
+
 
 
 def built_ctx(path: str):
@@ -64,10 +66,19 @@ def built_ctx(path: str):
     return
 
 
+def build_tar(path: str, output: str):
+    desc = load_py_desc(path)
+
+    ctx = TarContext()
+    ctx.prepare_from_descriptor(desc)
+
+    ctx.copy_to_file(Path(output))
+    
 def print_usage():
     print("Usage: rebuildr <command> <args>")
     print("Commands:")
-    print("  parse-py <path>")
+    print("  parse-py <rebuildr-file>")
+    print("  build-tar <rebuildr-file> <output>")
     return
 
 
@@ -93,6 +104,16 @@ def parse_cli():
         built_ctx(args[1])
         return
 
+    if args[0] == "build-tar":
+        if len(args) < 2:
+            logging.error("No path to rebuildr file provided")
+            return
+        if len(args) < 3:
+            logging.error("No tar path provided")
+            return
+        build_tar(args[1], args[2])
+        return
+    
     logging.error(f"Unknown command: {args[0]}")
     print_usage()
     return

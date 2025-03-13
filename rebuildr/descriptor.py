@@ -37,12 +37,10 @@ class Inputs:
         default_factory=list
     )
 
-
 @dataclass
 class TagTarget:
     repository: str
     tag: Optional[str] = None
-
 
 @dataclass
 class Descriptor:

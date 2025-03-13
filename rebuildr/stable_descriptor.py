@@ -147,6 +147,10 @@ class StableDescriptor:
                         stable_files.append(
                             StableFileInput(path=path, absolute_path=absolute_path)
                         )
+            elif isinstance(file_dep, str):
+                stable_files.append(
+                    StableFileInput(path=file_dep, absolute_path=absolute_path / file_dep)
+                )
             else:
                 raise ValueError(f"Unexpected input type {type(file_dep)}")
         return stable_files
