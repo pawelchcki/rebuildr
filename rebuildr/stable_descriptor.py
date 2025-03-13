@@ -8,11 +8,10 @@ from typing import Optional, Self
 
 from rebuildr.descriptor import (
     Descriptor,
-    Dockerfile,
     EnvInput,
     FileInput,
     GlobInput,
-    TagTarget,
+    ImageTarget,
 )
 
 
@@ -57,7 +56,6 @@ class StableFileInput:
 
     def hash_update(self, hasher):
         hasher.update(self.read_to_string().encode())
-        print(self.read_to_string())
 
 
 @dataclass
@@ -80,12 +78,32 @@ class StableInputs:
 
         return m.hexdigest()
 
+    def find_file(self, path: PurePath) -> Optional[StableFileInput]:
+        for file_dep in self.files:
+            if file_dep.path == path:
+                return file_dep
+
+        for file_dep in self.builders:
+            if file_dep.path == path:
+                return file_dep
+
+        return None
+
+
+@dataclass
+class StableImageTarget:
+    repository: str
+    dockerfile: PurePath
+    tag: Optional[str] = None
+    dockerfile_absolute_path: Optional[Path] = None
+    also_tag_with_content_id: bool = True
+
 
 @dataclass(frozen=True)
 class StableDescriptor:
     absolute_path: Path
     inputs: StableInputs
-    targets: Optional[list[TagTarget]] = None
+    targets: Optional[list[StableImageTarget]] = None
 
     def sha_sum(self):
         return self.inputs.sha_sum()
@@ -115,12 +133,6 @@ class StableDescriptor:
         stable_files = []
         for file_dep in files:
             if isinstance(file_dep, FileInput):
-                stable_files.append(
-                    StableFileInput(
-                        path=file_dep.path, absolute_path=absolute_path / file_dep.path
-                    )
-                )
-            elif isinstance(file_dep, Dockerfile):
                 stable_files.append(
                     StableFileInput(
                         path=file_dep.path, absolute_path=absolute_path / file_dep.path
@@ -177,12 +189,42 @@ class StableDescriptor:
             ],
             absolute_path,
         )
+
+        targets = []
+        for target in descriptor.targets:
+            if isinstance(target, ImageTarget):
+                dockerfile = target.dockerfile
+                if dockerfile is None:
+                    dockerfile = PurePath("Dockerfile")
+                dockerfile_path = absolute_path / dockerfile
+                if not dockerfile_path.exists():
+                    raise ValueError(f"Dockerfile {dockerfile_path} does not exist")
+
+                targets.append(
+                    StableImageTarget(
+                        repository=target.repository,
+                        tag=target.tag,
+                        dockerfile=dockerfile,
+                        dockerfile_absolute_path=dockerfile_path,
+                        also_tag_with_content_id=target.also_tag_with_content_id,
+                    )
+                )
+
+                builder_deps.append(
+                    StableFileInput(
+                        path=dockerfile,
+                        absolute_path=dockerfile_path,
+                    )
+                )
+            else:
+                raise ValueError(f"Unexpected target type {type(target)}")
+
         inputs = StableInputs(files=file_deps, builders=builder_deps, envs=env_deps)
 
         return StableDescriptor(
             absolute_path=absolute_path,
             inputs=inputs,
-            targets=descriptor.targets,
+            targets=targets,
         )
 
 

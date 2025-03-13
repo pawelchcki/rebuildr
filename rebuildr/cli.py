@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import tarfile
 from rebuildr.build import DockerCLIBuilder
-from rebuildr.descriptor import Descriptor, TagTarget
+from rebuildr.descriptor import Descriptor
 # typer is used to speed up development - ideally for ease of embedding
 # we shouldn't rely on 3rd party code a lot
 
@@ -13,7 +13,7 @@ import importlib.util
 import sys
 
 from rebuildr.fs import Context, TarContext
-from rebuildr.stable_descriptor import StableDescriptor
+from rebuildr.stable_descriptor import StableDescriptor, StableImageTarget
 
 
 def load_py_desc(path: str) -> StableDescriptor:
@@ -28,35 +28,44 @@ def load_py_desc(path: str) -> StableDescriptor:
     return image
 
 
-def parse_py(path: str) -> Descriptor:
+def parse_and_print_py(path: str):
     desc = load_py_desc(path)
     data = desc.stable_inputs_dict()
 
     print(json.dumps(data, indent=4, sort_keys=True))
-    return desc
 
 
-def built_ctx(path: str):
+def build_docker(path: str):
     desc = load_py_desc(path)
     ctx = Context.temp()
     ctx.prepare_from_descriptor(desc)
 
     builder = DockerCLIBuilder()
     tags = []
-    for tgt in desc.targets:
-        if isinstance(tgt, TagTarget):
-            # by default tag with content_id
-            tag = tgt.repository + ":src-id-" + desc.inputs.sha_sum()
+    if len(desc.targets) != 1:
+        raise ValueError(
+            "WIP - for now - Only one target is supported for docker build"
+        )
 
-            tags.append(tag)
-            if tgt.tag:
-                tags.append(tgt.repository + ":" + tgt.tag)
+    target = desc.targets[0]
 
+    if not isinstance(target, StableImageTarget):
+        raise ValueError("WIP - for now - Image target is supported for docker build")
+
+    if target.also_tag_with_content_id:
+        tag = target.repository + ":src-id-" + desc.inputs.sha_sum()
+        tags.append(tag)
+
+    if target.tag:
+        tags.append(target.repository + ":" + target.tag)
+
+    if len(tags) == 0:
+        raise ValueError("No tags specified")
+
+    dockerfile_path = ctx.root_dir / target.dockerfile
     iid = builder.build(
         root_dir=ctx.root_dir,
-        dockerfile=None
-        if desc.inputs.dockerfile is None
-        else desc.inputs.dockerfile.path,
+        dockerfile=dockerfile_path,
         tags=tags,
     )
     print(iid)
@@ -76,9 +85,9 @@ def build_tar(path: str, output: str):
 def print_usage():
     print("Usage: rebuildr <command> <args>")
     print("Commands:")
-    print("  parse-py <rebuildr-file>")
-    print("  build-tar <rebuildr-file> <output>")
-    return
+    print("  load-py <rebuildr-file>")
+    print("  load-py <rebuildr-file> build-docker")
+    print("  load-py <rebuildr-file> build-tar <output>")
 
 
 def parse_cli():
@@ -89,33 +98,41 @@ def parse_cli():
         print_usage()
         return
 
-    if args[0] == "parse-py":
-        if len(args) < 2:
-            logging.error("No path provided")
-            return
-        parse_py(args[1])
-        return
-
-    if args[0] == "build-py":
-        if len(args) < 2:
-            logging.error("No path provided")
-            return
-        built_ctx(args[1])
-        return
-
-    if args[0] == "build-tar":
-        if len(args) < 2:
-            logging.error("No path to rebuildr file provided")
-            return
-        if len(args) < 3:
-            logging.error("No tar path provided")
-            return
-        build_tar(args[1], args[2])
+    if args[0] == "load-py":
+        parse_cli_parse_py(args[1:])
         return
 
     logging.error(f"Unknown command: {args[0]}")
     print_usage()
     return
+
+
+def parse_cli_parse_py(args):
+    if len(args) == 0:
+        logging.error("Path to rebuildr file is required")
+        return
+
+    file_path = args[0]
+    args = args[1:]
+
+    if len(args) == 0:
+        parse_and_print_py(file_path)
+        return
+
+    if "build-docker" == args[0]:
+        build_docker(file_path)
+        return
+
+    if "build-tar" == args[0]:
+        if len(args) < 2:
+            logging.error("Tar path is required")
+            return
+        else:
+            build_tar(file_path, args[1])
+        return
+
+    logging.error(f"Unknown command: {args[1]}")
+    print_usage()
 
 
 def main():

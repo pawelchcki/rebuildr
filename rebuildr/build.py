@@ -15,11 +15,11 @@ class DockerCLIBuilder(object):
     def build(
         self,
         root_dir: Path,
+        dockerfile,
         tags=[],
         nocache=False,
         pull=False,
         forcerm=False,
-        dockerfile=None,
         container_limits=None,
         buildargs=None,
         cache_from=None,

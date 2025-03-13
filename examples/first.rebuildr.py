@@ -2,18 +2,18 @@
 #! nix shell path:../ --command rebuildr parse-py
 from rebuildr.descriptor import (
     Descriptor,
-    Dockerfile,
     EnvInput,
     FileInput,
     Inputs,
-    TagTarget,
+    ImageTarget,
 )
 
 image = Descriptor(
     targets=[
-        TagTarget(
+        ImageTarget(
             repository="firstimage",
             tag="latest",
+            dockerfile="first.Dockerfile",
         ),
     ],
     inputs=Inputs(
@@ -23,7 +23,6 @@ image = Descriptor(
         # any dependencies, files or paths that are required for builing but do not go into final artifact
         builders=[
             EnvInput(key="DOCKER_BUILDKIT"),
-            Dockerfile("first.Dockerfile"),
         ],
     ),
 )
