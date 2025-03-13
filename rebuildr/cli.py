@@ -15,7 +15,7 @@ from rebuildr.fs import Context
 from rebuildr.stable_descriptor import StableDescriptor
 
 
-def load_py_desc(path: str) -> Descriptor:
+def load_py_desc(path: str) -> StableDescriptor:
     spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules["rebuildr.external.desc"] = module
@@ -30,9 +30,9 @@ def load_py_desc(path: str) -> Descriptor:
 def parse_py(path: str) -> Descriptor:
     desc = load_py_desc(path)
 
-    data = desc.as_dict()
+    json = desc.stable_json()
 
-    print(json.dumps(data, indent=4, sort_keys=True))
+    print(json)
     return desc
 
 

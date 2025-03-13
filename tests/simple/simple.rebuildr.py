@@ -7,9 +7,9 @@ image = Descriptor(
         files=[
             FileInput("test.txt"),
         ],
-        builders= [
+        builders=[
             EnvInput("_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"),
             Dockerfile("simple.Dockerfile"),
-        ]
+        ],
     ),
 )

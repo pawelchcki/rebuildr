@@ -5,6 +5,7 @@ import tempfile
 
 from rebuildr.stable_descriptor import StableEnvInput, StableFileInput, StableDescriptor
 
+
 class Context(object):
     def __init__(self, root_dir):
         if isinstance(root_dir, tempfile.TemporaryDirectory):
@@ -26,12 +27,12 @@ class Context(object):
         for file in descriptor.inputs.files:
             dest_path = files_path / file.path
             src_path = file.absolute_path
-            
+
             dest_dir = dest_path.parent
             dest_dir.mkdir(parents=True, exist_ok=True)
 
             shutil.copy(src_path, dest_path)
-        
+
         for file in descriptor.inputs.builders:
             if isinstance(file, StableFileInput):
                 dest_path = builders_path / file.path

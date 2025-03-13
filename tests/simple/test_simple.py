@@ -75,4 +75,22 @@ def test_context_prepare_with_glob():
     import glob
 
     files_in_ctx = glob.glob("./**/*", root_dir=ctx.root_dir, recursive=True)
-    assert files_in_ctx == ["./simple.Dockerfile", "./src", "./src/second_file.txt", "./src/test.txt"]
+    assert files_in_ctx == [
+        "./simple.Dockerfile",
+        "./src",
+        "./src/second_file.txt",
+        "./src/test.txt",
+    ]
+
+
+def test_xxx():
+    desc = load_py_desc(current_dir / "simple_with_glob.rebuildr.py")
+
+    assert desc.stable_inputs_dict() == {
+        "inputs": {
+            "envs": [{"key": "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"}],
+            "files": [{"path": "second_file.txt"}, {"path": "test.txt"}],
+            "builders": [{"path": "simple.Dockerfile"}],
+        },
+        "sha256": "19ff9c6aaccc44204b9df6e04123e25ccfcd00208c1c3f5d7434a38d9ea031e6",
+    }

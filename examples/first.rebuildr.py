@@ -1,6 +1,13 @@
 #! /usr/bin/env nix
 #! nix shell path:../ --command rebuildr parse-py
-from rebuildr.descriptor import Descriptor, Dockerfile, EnvInput, FileInput, Inputs, TagTarget
+from rebuildr.descriptor import (
+    Descriptor,
+    Dockerfile,
+    EnvInput,
+    FileInput,
+    Inputs,
+    TagTarget,
+)
 
 image = Descriptor(
     targets=[
