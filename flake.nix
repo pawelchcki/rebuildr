@@ -53,6 +53,22 @@
         default = rebuildr.${system} {
           doCheck = false;
         };
+
+        docker-image = pkgs.${system}.dockerTools.buildImage {
+          name = "rebuildr";
+          tag = "latest";
+
+          copyToRoot = pkgs.${system}.buildEnv {
+            name = "image-root";
+            paths = [ self.packages.${system}.default ];
+            pathsToLink = [ "/bin" ];
+          };
+
+          config = {
+            Cmd = [ "/bin/rebuildr" ];
+            WorkingDir = "/";
+          };
+        };
       });
 
       formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);

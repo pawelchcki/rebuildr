@@ -36,8 +36,11 @@ class Context(object):
         root_dir = tempfile.TemporaryDirectory()
         return Context(root_dir)
 
+    def src_path(self) -> Path:
+        return self.root_dir / "src"
+
     def prepare_from_descriptor(self, descriptor: StableDescriptor):
-        files_path = self.root_dir / "src"
+        files_path = self.src_path()
         files_path.mkdir(parents=True, exist_ok=True)
 
         builders_path = self.root_dir

@@ -64,7 +64,7 @@ def build_docker(path: str):
 
     dockerfile_path = ctx.root_dir / target.dockerfile
     iid = builder.build(
-        root_dir=ctx.root_dir,
+        root_dir=ctx.src_path(),
         dockerfile=dockerfile_path,
         tags=tags,
     )
@@ -131,10 +131,18 @@ def parse_cli_parse_py(args):
             build_tar(file_path, args[1])
         return
 
-    logging.error(f"Unknown command: {args[1]}")
+    if args[0] == "-h" or args[0] == "--help":
+        print_usage()
+        return
+
+    logging.error(f"Unknown command: {args[0]}")
     print_usage()
 
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
     parse_cli()
+
+
+if __name__ == "__main__":
+    main()
