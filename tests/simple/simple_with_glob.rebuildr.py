@@ -1,15 +1,15 @@
 #! /usr/bin/env nix
 #! nix shell path:../ --command rebuildr parse-py
-from rebuildr.descriptor import Descriptor, EnvInput, FileInput, GlobInput, Inputs
+from rebuildr.descriptor import Descriptor, Dockerfile, EnvInput, FileInput, GlobInput, Inputs
 
 image = Descriptor(
     inputs=Inputs(
-        env=[
+        builders=[
             EnvInput(key="EXAMPLE_ENV"),
+            Dockerfile("simple.Dockerfile"),
         ],
         files=[
             GlobInput(pattern="*.txt"),
         ],
-        dockerfile="simple.Dockerfile",
     ),
 )

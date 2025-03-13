@@ -12,6 +12,7 @@ import importlib.util
 import sys
 
 from rebuildr.fs import Context
+from rebuildr.stable_descriptor import StableDescriptor
 
 
 def load_py_desc(path: str) -> Descriptor:
@@ -20,7 +21,8 @@ def load_py_desc(path: str) -> Descriptor:
     sys.modules["rebuildr.external.desc"] = module
     spec.loader.exec_module(module)
     absolute_dirname = Path(os.path.dirname(os.path.abspath(path)))
-    image = module.image.postprocess_paths(absolute_dirname)
+
+    image = StableDescriptor.from_descriptor(module.image, absolute_dirname)
 
     return image
 

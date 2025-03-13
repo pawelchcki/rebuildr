@@ -8,8 +8,8 @@ current_dir = resolve_current_dir(__file__)
 def test_basic_properties():
     desc = load_py_desc(current_dir / "simple.rebuildr.py")
 
-    assert desc.inputs.env[0].key == "EXAMPLE_ENV"
-    assert desc.inputs.files[0].path == str(current_dir / "test.txt")
+    assert desc.inputs.envs[0].key == "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"
+    assert desc.inputs.files[0].path == str("test.txt")
 
 
 def test_sha_sum():
@@ -18,27 +18,30 @@ def test_sha_sum():
     import hashlib
 
     m = hashlib.sha256()
-
-    m.update("EXAMPLE_ENV".encode())
-    with open(current_dir / "test.txt", "r") as f:
-        m.update(f.read().encode())
+    m.update("_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM".encode())
+    print("example: " + m.hexdigest())
     with open(current_dir / "simple.Dockerfile", "r") as f:
         m.update(f.read().encode())
 
+    with open(current_dir / "test.txt", "r") as f:
+        m.update(f.read().encode())
+
+    assert desc.sha_sum() == m.hexdigest()
+
     assert (
         desc.sha_sum()
-        == "ceb4a0286c40df1f8d7a090b8771f7cbfc2e976e8c915f6a1e23f925e290c9ef"
+        == "e2b803a131a4bac358aeb8f6eec7428f576fb7239155ad2a34bef1864054d2a1"
     ), "sha sum is not correct"
-    assert desc.sha_sum() == m.hexdigest()
 
     # changing the env should change the sha sum
     import os
 
-    os.environ["EXAMPLE_ENV"] = "something else"
+    os.environ["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = "something else"
     assert (
         desc.sha_sum()
-        == "8a3d317957285aebdcb1154c335e6c46b257ceef03990adbf3295cea73bc9012"
+        == "ebe6d57945599f48f79959fb4206381b488cdacd5cd0c9c2efafa379eca73a49"
     )
+    os.environ["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = ""
 
 
 def test_context_prepare():
@@ -54,7 +57,9 @@ def test_context_prepare():
 
     files_in_ctx = glob.glob("./**/*", root_dir=ctx.root_dir, recursive=True)
     assert files_in_ctx == [
-        "./test.txt",
+        "./simple.Dockerfile",
+        "./src",
+        "./src/test.txt",
     ]
 
 
@@ -70,4 +75,4 @@ def test_context_prepare_with_glob():
     import glob
 
     files_in_ctx = glob.glob("./**/*", root_dir=ctx.root_dir, recursive=True)
-    assert files_in_ctx == ["./second_file.txt", "./test.txt"]
+    assert files_in_ctx == ["./simple.Dockerfile", "./src", "./src/second_file.txt", "./src/test.txt"]

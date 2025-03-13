@@ -3,8 +3,7 @@ from pathlib import Path, PurePath
 import shutil
 import tempfile
 
-from rebuildr.descriptor import Descriptor, FileInput
-
+from rebuildr.stable_descriptor import StableEnvInput, StableFileInput, StableDescriptor
 
 class Context(object):
     def __init__(self, root_dir):
@@ -18,19 +17,31 @@ class Context(object):
         root_dir = tempfile.TemporaryDirectory()
         return Context(root_dir)
 
-    def copy_to(self, src: PurePath, dest: PurePath):
-        # copy using python builtin src to root dir dest subpath
-        dest_path = self.root_dir / dest
-        dest_dir = dest_path.parent
-        dest_dir.mkdir(parents=True, exist_ok=True)
+    def prepare_from_descriptor(self, descriptor: StableDescriptor):
+        files_path = self.root_dir / "src"
+        files_path.mkdir(parents=True, exist_ok=True)
 
-        shutil.copy(src, dest_path)
+        builders_path = self.root_dir
 
-    def prepare_from_descriptor(self, descriptor: Descriptor):
         for file in descriptor.inputs.files:
-            dest_path = self.root_dir / file._relative_path
+            dest_path = files_path / file.path
+            src_path = file.absolute_path
+            
             dest_dir = dest_path.parent
-
             dest_dir.mkdir(parents=True, exist_ok=True)
 
-            shutil.copy(file.path, dest_path)
+            shutil.copy(src_path, dest_path)
+        
+        for file in descriptor.inputs.builders:
+            if isinstance(file, StableFileInput):
+                dest_path = builders_path / file.path
+                src_path = file.absolute_path
+
+                dest_dir = dest_path.parent
+                dest_dir.mkdir(parents=True, exist_ok=True)
+
+                shutil.copy(src_path, dest_path)
+            elif isinstance(file, StableEnvInput):
+                pass
+            else:
+                raise ValueError("Unknown input type")
