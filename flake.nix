@@ -81,7 +81,9 @@
         pre-commit-check = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
-            nixpkgs-fmt.enable = true;
+            # nixpkgs-fmt.enable = true;
+            treefmt.package = treefmtEval.${system}.config.build.wrapper;
+            treefmt.enable = true;
           };
         };
       });
