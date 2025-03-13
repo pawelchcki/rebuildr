@@ -6,6 +6,7 @@ import tempfile
 
 from rebuildr.stable_descriptor import StableEnvInput, StableFileInput, StableDescriptor
 
+
 class TarContext(object):
     def __init__(self):
         self.temp_file = tempfile.NamedTemporaryFile()
@@ -21,7 +22,7 @@ class TarContext(object):
         shutil.copyfile(self.temp_file_path, path)
         # reopen file
         self.tar = tarfile.open(self.temp_file_path, "a:")
-        
+
 
 class Context(object):
     def __init__(self, root_dir):

@@ -36,8 +36,6 @@ def parse_py(path: str) -> Descriptor:
     return desc
 
 
-
-
 def built_ctx(path: str):
     desc = load_py_desc(path)
     ctx = Context.temp()
@@ -73,7 +71,8 @@ def build_tar(path: str, output: str):
     ctx.prepare_from_descriptor(desc)
 
     ctx.copy_to_file(Path(output))
-    
+
+
 def print_usage():
     print("Usage: rebuildr <command> <args>")
     print("Commands:")
@@ -113,7 +112,7 @@ def parse_cli():
             return
         build_tar(args[1], args[2])
         return
-    
+
     logging.error(f"Unknown command: {args[0]}")
     print_usage()
     return
