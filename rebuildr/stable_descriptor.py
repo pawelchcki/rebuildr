@@ -15,7 +15,6 @@ from rebuildr.descriptor import (
     TagTarget,
 )
 
-
 class BaseInput:
     # used for sorting inputs to make the output stable
     def sort_key(self) -> str:
@@ -24,7 +23,6 @@ class BaseInput:
     # used for hashing inputs
     def hash_update(self, hasher):
         raise NotImplementedError
-
 
 @dataclass()
 class StableEnvInput(BaseInput):
