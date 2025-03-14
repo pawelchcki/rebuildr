@@ -98,6 +98,17 @@ class StableImageTarget:
     dockerfile_absolute_path: Optional[Path] = None
     also_tag_with_content_id: bool = True
 
+    def image_tags(self, inputs: StableInputs) -> list[str]:
+        tags = []
+        if self.tag:
+            tags.append(self.repository + ":" + self.tag)
+        if self.also_tag_with_content_id:
+            tags.append(self.repository + ":src-id-" + inputs.sha_sum())
+        return tags
+
+    def content_id_tag(self, inputs: StableInputs) -> str:
+        return self.repository + ":src-id-" + inputs.sha_sum()
+
 
 @dataclass(frozen=True)
 class StableDescriptor:

@@ -7,7 +7,7 @@ image = Descriptor(
     targets=[
         ImageTarget(
             dockerfile="tiny.Dockerfile",
-            repository="ghcr.io/rebuildr/tiny",
+            repository="ghcr.io/pawelchcki/rebuildr/tiny",
             tag="latest",
         )
     ],

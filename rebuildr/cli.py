@@ -5,6 +5,12 @@ import os
 from pathlib import Path
 import tarfile
 from rebuildr.build import DockerCLIBuilder
+from rebuildr.containers.util import (
+    image_exists_in_registry,
+    image_exists_locally,
+    pull_image,
+    push_image,
+)
 from rebuildr.descriptor import Descriptor
 # typer is used to speed up development - ideally for ease of embedding
 # we shouldn't rely on 3rd party code a lot
@@ -37,11 +43,7 @@ def parse_and_print_py(path: str):
 
 def build_docker(path: str):
     desc = load_py_desc(path)
-    ctx = Context.temp()
-    ctx.prepare_from_descriptor(desc)
 
-    builder = DockerCLIBuilder()
-    tags = []
     if len(desc.targets) != 1:
         raise ValueError(
             "WIP - for now - Only one target is supported for docker build"
@@ -52,25 +54,41 @@ def build_docker(path: str):
     if not isinstance(target, StableImageTarget):
         raise ValueError("WIP - for now - Image target is supported for docker build")
 
-    if target.also_tag_with_content_id:
-        tag = target.repository + ":src-id-" + desc.inputs.sha_sum()
-        tags.append(tag)
+    content_id_tag = (
+        target.content_id_tag(desc.inputs) if target.also_tag_with_content_id else None
+    )
 
-    if target.tag:
-        tags.append(target.repository + ":" + target.tag)
+    if content_id_tag and image_exists_locally(content_id_tag):
+        logging.info(f"Tag {target.content_id_tag(desc.inputs)} already exists")
+        return content_id_tag
+    elif content_id_tag and image_exists_in_registry(content_id_tag):
+        logging.info(
+            f"Tag {target.content_id_tag(desc.inputs)} already exists in registry, downloading"
+        )
+        pull_image(content_id_tag)
+        return content_id_tag
+
+    ctx = Context.temp()
+    ctx.prepare_from_descriptor(desc)
+
+    builder = DockerCLIBuilder()
+
+    tags = target.image_tags(desc.inputs)
 
     if len(tags) == 0:
         raise ValueError("No tags specified")
 
     dockerfile_path = ctx.root_dir / target.dockerfile
-    iid = builder.build(
+    builder.build(
         root_dir=ctx.src_path(),
         dockerfile=dockerfile_path,
         tags=tags,
     )
-    print(iid)
 
-    return
+    if content_id_tag:
+        return content_id_tag
+    else:
+        return tags[0]
 
 
 def build_tar(path: str, output: str):
@@ -86,7 +104,7 @@ def print_usage():
     print("Usage: rebuildr <command> <args>")
     print("Commands:")
     print("  load-py <rebuildr-file>")
-    print("  load-py <rebuildr-file> build-docker")
+    print("  load-py <rebuildr-file> materialize-image")
     print("  load-py <rebuildr-file> build-tar <output>")
 
 
@@ -119,8 +137,13 @@ def parse_cli_parse_py(args):
         parse_and_print_py(file_path)
         return
 
-    if "build-docker" == args[0]:
-        build_docker(file_path)
+    if "materialize-image" == args[0]:
+        print(build_docker(file_path))
+        return
+
+    if "push-image" == args[0]:
+        tag = build_docker(file_path)
+        push_image(tag)
         return
 
     if "build-tar" == args[0]:
