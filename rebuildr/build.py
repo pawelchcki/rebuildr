@@ -23,6 +23,7 @@ class DockerCLIBuilder(object):
         container_limits=None,
         buildargs=None,
         cache_from=None,
+        platform=None,
         target=None,
     ):
         if dockerfile:
@@ -43,6 +44,7 @@ class DockerCLIBuilder(object):
         command_builder.add_flag("--no-cache", nocache)
         command_builder.add_arg("--progress", self._progress)
         command_builder.add_flag("--pull", pull)
+        command_builder.add_arg("--platform", platform)  # TODO: add platforms build_sha
         for tag in tags:
             command_builder.add_arg("--tag", tag)
         command_builder.add_arg("--target", target)
@@ -70,8 +72,9 @@ class DockerCLIBuilder(object):
             with subprocess.Popen(
                 args, stdout=sys.stderr.buffer, universal_newlines=True
             ) as p:
-                if p.wait() != 0:
-                    print("TODO: error building image")
+                exit_code = p.wait()
+                if exit_code != 0:
+                    raise Exception(f"Builder exited with code {exit_code}")
 
         with open(str(iidfile)) as f:
             line = f.readline()

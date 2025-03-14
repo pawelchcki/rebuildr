@@ -6,8 +6,8 @@ from rebuildr.descriptor import Descriptor, GlobInput, ImageTarget, Inputs
 image = Descriptor(
     targets=[
         ImageTarget(
-            dockerfile="tiny.Dockerfile",
-            repository="registry.ddbuild.io/ci/rebuildr/tiny",
+            dockerfile="small.Dockerfile",
+            repository="registry.ddbuild.io/ci/rebuildr/small",
             tag="latest",
         )
     ],

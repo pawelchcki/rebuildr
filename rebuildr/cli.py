@@ -83,6 +83,7 @@ def build_docker(path: str):
         root_dir=ctx.src_path(),
         dockerfile=dockerfile_path,
         tags=tags,
+        platform="linux/amd64,linux/arm64",
     )
 
     if content_id_tag:
@@ -105,6 +106,7 @@ def print_usage():
     print("Commands:")
     print("  load-py <rebuildr-file>")
     print("  load-py <rebuildr-file> materialize-image")
+    print("  load-py <rebuildr-file> push-image")
     print("  load-py <rebuildr-file> build-tar <output>")
 
 
@@ -144,6 +146,7 @@ def parse_cli_parse_py(args):
     if "push-image" == args[0]:
         tag = build_docker(file_path)
         push_image(tag)
+        print(tag)
         return
 
     if "build-tar" == args[0]:

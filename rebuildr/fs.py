@@ -39,6 +39,15 @@ class Context(object):
     def src_path(self) -> Path:
         return self.root_dir / "src"
 
+    def _copy_file(self, src_path: Path, dest_path: Path):
+        dest_dir = dest_path.parent
+
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # Preserve file modification and creation times
+        src_stat = src_path.stat()
+        shutil.copy2(src_path, dest_path)  # copy2 preserves metadata
+
     def prepare_from_descriptor(self, descriptor: StableDescriptor):
         files_path = self.src_path()
         files_path.mkdir(parents=True, exist_ok=True)

@@ -97,6 +97,7 @@ class StableImageTarget:
     tag: Optional[str] = None
     dockerfile_absolute_path: Optional[Path] = None
     also_tag_with_content_id: bool = True
+    target: Optional[str] = None
 
     def image_tags(self, inputs: StableInputs) -> list[str]:
         tags = []
@@ -140,20 +141,20 @@ class StableDescriptor:
         }
 
     @staticmethod
-    def _make_stable_files(files, absolute_path: Path) -> list[StableFileInput]:
+    def _make_stable_files(files, root_dir: Path) -> list[StableFileInput]:
         stable_files = []
         for file_dep in files:
             if isinstance(file_dep, FileInput):
                 stable_files.append(
                     StableFileInput(
-                        path=file_dep.path, absolute_path=absolute_path / file_dep.path
+                        path=file_dep.path, absolute_path=root_dir / file_dep.path
                     )
                 )
             elif isinstance(file_dep, GlobInput):
                 glob_root = (
-                    absolute_path
+                    root_dir
                     if file_dep.root_dir is None
-                    else absolute_path / file_dep.root_dir
+                    else root_dir / file_dep.root_dir
                 )
                 for path in glob.glob(
                     file_dep.pattern,
@@ -192,6 +193,9 @@ class StableDescriptor:
             for dep in descriptor.inputs.builders
             if isinstance(dep, EnvInput)
         ]
+        # todo metadata from chosen target (like context build targets must be included in the sha sum of the tool)
+        metadata_deps = []
+
         builder_deps = StableDescriptor._make_stable_files(
             [
                 dep

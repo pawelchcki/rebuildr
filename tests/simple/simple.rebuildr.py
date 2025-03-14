@@ -1,15 +1,18 @@
-#! /usr/bin/env nix
-#! nix shell path:../ --command rebuildr parse-py
-from rebuildr.descriptor import Descriptor, Dockerfile, EnvInput, FileInput, Inputs
+from rebuildr.descriptor import Descriptor, EnvInput, FileInput, ImageTarget, Inputs
 
 image = Descriptor(
-    Inputs(
+    targets=[
+        ImageTarget(
+            dockerfile="simple.Dockerfile",
+            repository="registry.ddbuild.io/ci/rebuildr/simple",
+        ),
+    ],
+    inputs=Inputs(
         files=[
             FileInput("test.txt"),
         ],
         builders=[
             EnvInput("_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"),
-            Dockerfile("simple.Dockerfile"),
         ],
     ),
 )

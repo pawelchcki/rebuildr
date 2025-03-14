@@ -37,6 +37,7 @@ class ImageTarget:
     tag: Optional[str] = None
     also_tag_with_content_id: bool = True
     dockerfile: Optional[str | PurePath] = None
+    target: Optional[str] = None  # TODO: Targets are not supported yet
 
 
 @dataclass
