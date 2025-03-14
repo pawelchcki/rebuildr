@@ -25,7 +25,7 @@
       system: attrs:
         python3.${system}.pkgs.buildPythonApplication {
           pname = "rebuildr";
-          version = "0.1";
+          version = "0.2-dev";
 
           inherit (attrs) doCheck;
 
