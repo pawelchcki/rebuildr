@@ -54,8 +54,12 @@ class StableFileInput:
         with open(self.absolute_path, "r") as f:
             return f.read()
 
+    def read_bytes(self):
+        with open(self.absolute_path, "rb") as f:
+            return f.read()
+
     def hash_update(self, hasher):
-        hasher.update(self.read_to_string().encode())
+        hasher.update(self.read_bytes())
 
 
 @dataclass
