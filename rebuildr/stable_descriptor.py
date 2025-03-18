@@ -50,12 +50,12 @@ class StableFileInput:
     def sort_key(self) -> str:
         return str(self.path)
 
-    def read_to_string(self) -> str:
-        with open(self.absolute_path, "r") as f:
+    def read_bytes(self) -> str:
+        with open(self.absolute_path, "rb") as f:
             return f.read()
 
     def hash_update(self, hasher):
-        hasher.update(self.read_to_string().encode())
+        hasher.update(self.read_bytes())
 
 
 @dataclass

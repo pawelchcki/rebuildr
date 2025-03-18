@@ -85,7 +85,15 @@ def test_context_prepare_with_glob():
     ]
 
 
-def test_xxx():
+def test_with_binary_file():
+    desc = load_py_desc(current_dir / "simple_with_binary_file.rebuildr.py")
+    assert (
+        desc.sha_sum()
+        == "7da05a4083203b1fdb83b111c46f2b20fbcbb219301ecbb1deb076e7557b6a6f"
+    )
+
+
+def test_inputs_dict_consistency():
     desc = load_py_desc(current_dir / "simple_with_glob.rebuildr.py")
 
     assert desc.stable_inputs_dict() == {
