@@ -56,6 +56,7 @@ def test_context_prepare():
     import glob
 
     files_in_ctx = glob.glob("./**/*", root_dir=ctx.root_dir, recursive=True)
+    files_in_ctx.sort()
     assert files_in_ctx == [
         "./simple.Dockerfile",
         "./src",
@@ -75,6 +76,7 @@ def test_context_prepare_with_glob():
     import glob
 
     files_in_ctx = glob.glob("./**/*", root_dir=ctx.root_dir, recursive=True)
+    files_in_ctx.sort()
     assert files_in_ctx == [
         "./simple.Dockerfile",
         "./src",
