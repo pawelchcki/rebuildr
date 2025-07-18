@@ -94,6 +94,7 @@
         packages = with _pkgs; [
           uv
           git
+          bazel_5
         ];
 
         buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;

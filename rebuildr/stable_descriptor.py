@@ -179,6 +179,7 @@ class StableDescriptor:
                 )
             else:
                 raise ValueError(f"Unexpected input type {type(file_dep)}")
+        stable_files.sort(key=lambda x: x.sort_key())
         return stable_files
 
     def from_descriptor(descriptor: Descriptor, absolute_path: Path) -> Self:
