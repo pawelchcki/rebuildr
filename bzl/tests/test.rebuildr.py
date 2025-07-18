@@ -9,7 +9,7 @@ image = Descriptor(
     ),
     targets=[
         ImageTarget(
-            repository="test-image",
+            repository="registry.ddbuild.io/ci/rebuildr/test-image",
             tag="latest",
             dockerfile="Dockerfile",
         ),

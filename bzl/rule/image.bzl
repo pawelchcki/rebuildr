@@ -1,17 +1,7 @@
-"""
-Rule for building container images using rebuildr.
 
-This rule processes a descriptor file and source files to build container images.
-It handles file copying while preserving directory structure, and executes the
-rebuildr tool to build the specified images.
-
-Args:
-    name: A unique name for this rule.
-    srcs: Source files to include in the build context.
-    descriptor: A Python file containing a rebuildr.Descriptor object.
-"""
 
 load("@bazel_skylib//lib:shell.bzl", "shell")
+load("//bzl/rule:providers.bzl", "RebuildrInfo")
 
 def build_copy_commands(work_dir, input_attrs):
     """
@@ -72,6 +62,7 @@ def build_copy_commands(work_dir, input_attrs):
 
     return "\n".join(copy_commands)
 
+
 def _rebuildr_impl(ctx):
     # Get the input files
     input_files = ctx.files.srcs
@@ -111,7 +102,7 @@ def _rebuildr_impl(ctx):
     export REBUILDR_OVERRIDE_ROOT_DIR={work_dir}
 
     # Run the rebuildr tool
-    {rebuildr} load-py {descriptor} > {output}
+    {rebuildr} load-py {descriptor} | tee {output}
     """.format(
         runfiles_dir = runfiles_dir,
         rebuildr = shell.quote(ctx.executable._rebuildr_tool.path),
@@ -130,8 +121,45 @@ def _rebuildr_impl(ctx):
         use_default_shell_env = True,
     )
 
-    # Return the output files for other rules to use
-    return [DefaultInfo(files = depset([output_file]))]
+    # Create runfiles with the tool and descriptor file
+    # This isn't working because we need to include the transitive runfiles of the _rebuildr_tool
+    # The tool likely has Python dependencies that need to be included
+    runfiles = ctx.runfiles(files = [ctx.executable._rebuildr_tool, descriptor_file, work_dir])
+    # Merge with the default runfiles of the rebuildr tool to get all its dependencies
+    runfiles = runfiles.merge(ctx.attr._rebuildr_tool[DefaultInfo].default_runfiles)
+
+    executable_output = ctx.actions.declare_file(ctx.label.name + ".sh")
+
+    command = """
+    set -eux
+    # Set up the Python environment to find runfiles
+
+    export REBUILDR_OVERRIDE_ROOT_DIR={work_dir}
+
+    # Run the rebuildr tool
+    {rebuildr} load-py {descriptor}
+    """.format(
+        rebuildr = shell.quote(ctx.executable._rebuildr_tool.short_path),
+        descriptor = shell.quote(descriptor_file.path),
+        work_dir = shell.quote(work_dir.short_path),
+        rebuildr_runfiles = shell.quote(runfiles_dir),
+    )
+
+    ctx.actions.write(output = executable_output, is_executable = True, content = command)
+
+    # Return both DefaultInfo and our custom provider
+    return [
+        DefaultInfo(
+            files = depset([output_file]), 
+            executable = executable_output, 
+            runfiles = runfiles
+        ),
+        RebuildrInfo(
+            descriptor = descriptor_file,
+            work_dir = work_dir,
+            stable_file = output_file,
+        ),
+    ]
 
 # Define the rule
 rebuildr_image = rule(
@@ -139,6 +167,7 @@ rebuildr_image = rule(
     outputs = {
         "stable": "%{name}.stable",
     },
+    executable = True,
     attrs = {
         "srcs": attr.label_list(
             allow_files = True,
@@ -150,7 +179,7 @@ rebuildr_image = rule(
             doc = "Python descriptor file for the rebuildr build",
         ),
         "_rebuildr_tool": attr.label(
-            default = Label("//rebuildr:rebuildr"),  # This now points to the actual rebuildr binary
+            default = Label("//rebuildr:rebuildr"),
             executable = True,
             cfg = "exec",
             doc = "The rebuildr executable",
