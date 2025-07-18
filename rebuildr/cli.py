@@ -23,13 +23,26 @@ from rebuildr.stable_descriptor import StableDescriptor, StableImageTarget
 
 
 def load_py_desc(path: str) -> StableDescriptor:
+    # Disable bytecode generation for this import
     spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules["rebuildr.external.desc"] = module
-    spec.loader.exec_module(module)
-    absolute_dirname = Path(os.path.dirname(os.path.abspath(path)))
 
-    image = StableDescriptor.from_descriptor(module.image, absolute_dirname)
+    original_dont_write_bytecode = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        # Restore the original setting
+        sys.dont_write_bytecode = original_dont_write_bytecode
+
+    root_absolute_dirname = Path(os.path.dirname(os.path.abspath(path)))
+    # Check for environment variable to override the root directory
+    root_dir_override = os.environ.get("REBUILDR_OVERRIDE_ROOT_DIR")
+    if root_dir_override:
+        logging.info(f"Overriding root directory with {root_dir_override}")
+        root_absolute_dirname = Path(root_dir_override).resolve()
+    image = StableDescriptor.from_descriptor(module.image, root_absolute_dirname)
 
     return image
 

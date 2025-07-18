@@ -1,0 +1,5 @@
+filegroup(
+    name = "example_bzl_deps",
+    srcs = ["transitive_file.txt"],
+    visibility = ["//visibility:public"],
+)

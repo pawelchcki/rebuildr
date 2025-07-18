@@ -1,0 +1,32 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("//bzl/rule:rule.bzl", "rebuildr_image")
+
+# Test instance of our rebuildr rule
+rebuildr_image(
+    name = "test_image_build",
+    srcs = [
+        "Dockerfile",
+        "test_file.txt",
+        "//bzl/test_example_bzl_deps",
+        "//bzl/tests/example_bzl_deps",
+    ],
+    descriptor = "test_descriptor.py",
+)
+
+# Test that the build rule works
+build_test(
+    name = "rebuildr_image_build_test",
+    targets = [
+        ":test_image_build",
+    ],
+)
+
+# Integration test that checks the output
+sh_test(
+    name = "rebuildr_integration_test",
+    srcs = ["test_image_check.sh"],
+    args = ["$(location :test_image_build.out)"],
+    data = [
+        ":test_image_build.out",
+    ],
+)

@@ -1,0 +1,8 @@
+filegroup(
+    name = "test_example_bzl_deps",
+    srcs = [
+        "subdir/file_in_subdir.txt",
+        "test_example_bzl_deps.txt",
+    ],
+    visibility = ["//visibility:public"],
+)

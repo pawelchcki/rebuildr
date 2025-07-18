@@ -20,7 +20,7 @@ image = Descriptor(
         files=[
             FileInput(path="test.txt"),
         ],
-        # any dependencies, files or paths that are required for builing but do not go into final artifact
+        # any dependencies, files or paths that are required for building but do not go into final artifact
         builders=[
             EnvInput(key="DOCKER_BUILDKIT"),
         ],

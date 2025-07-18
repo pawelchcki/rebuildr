@@ -1,0 +1,17 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+
+py_library(
+    name = "rebuildr_lib",
+    srcs = glob(["**/*.py"]),
+    imports = ["."],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "rebuildr",
+    srcs = ["cli.py"],
+    imports = ["."],
+    main = "cli.py",
+    visibility = ["//visibility:public"],
+    deps = [":rebuildr_lib"],
+)
