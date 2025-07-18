@@ -3,7 +3,6 @@ import json
 import logging
 import os
 from pathlib import Path
-import tarfile
 from rebuildr.build import DockerCLIBuilder
 from rebuildr.containers.util import (
     image_exists_in_registry,
@@ -11,9 +10,7 @@ from rebuildr.containers.util import (
     pull_image,
     push_image,
 )
-from rebuildr.descriptor import Descriptor
-# typer is used to speed up development - ideally for ease of embedding
-# we shouldn't rely on 3rd party code a lot
+
 
 import importlib.util
 import sys
@@ -22,9 +19,11 @@ from rebuildr.fs import Context, TarContext
 from rebuildr.stable_descriptor import StableDescriptor, StableImageTarget
 
 
-def load_py_desc(path: str) -> StableDescriptor:
+def load_py_desc(path: str | Path) -> StableDescriptor:
     # Disable bytecode generation for this import
     spec = importlib.util.spec_from_file_location("rebuildr.external.desc", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load descriptor from path: {path}")
     module = importlib.util.module_from_spec(spec)
     sys.modules["rebuildr.external.desc"] = module
 
@@ -57,7 +56,7 @@ def parse_and_print_py(path: str):
 def build_docker(path: str):
     desc = load_py_desc(path)
 
-    if len(desc.targets) != 1:
+    if desc.targets is None or len(desc.targets) != 1:
         raise ValueError(
             "WIP - for now - Only one target is supported for docker build"
         )
@@ -92,11 +91,17 @@ def build_docker(path: str):
         raise ValueError("No tags specified")
 
     dockerfile_path = ctx.root_dir / target.dockerfile
+    target_platforms = None
+    if target.platform is not None:
+        target_platforms = target.platform.value
+    else:
+        target_platforms = "linux/amd64,linux/arm64"
+
     builder.build(
         root_dir=ctx.src_path(),
         dockerfile=dockerfile_path,
         tags=tags,
-        platform="linux/amd64,linux/arm64",
+        platform=target_platforms,
     )
 
     if content_id_tag:

@@ -94,6 +94,8 @@
         packages = with _pkgs; [
           uv
           git
+          bazel_5
+          jdk11_headless
         ];
 
         buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;

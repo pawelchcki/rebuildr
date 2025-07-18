@@ -1,0 +1,1 @@
+- [ ] add container registry caching of external dependencies (e.g. git clone... resutl will be stored as docker layer and pushed to appropriate repository)

@@ -1,0 +1,19 @@
+load("//:rules.bzl", "rebuildr_image", "rebuildr_materialize")
+
+rebuildr_image(
+    name = "dotnet_image",
+    srcs = [
+        "Dockerfile",
+    ],
+    descriptor = "dotnet.rebuildr.py",
+)
+
+rebuildr_materialize(
+    name = "dotnet_materialize",
+    src = ":dotnet_image",
+    tags = [
+        "external",
+        "no-cache",
+        "no-remote",
+    ],
+)

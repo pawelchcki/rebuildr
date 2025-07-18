@@ -9,7 +9,7 @@ def test_basic_properties():
     desc = load_py_desc(current_dir / "simple.rebuildr.py")
 
     assert desc.inputs.envs[0].key == "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"
-    assert desc.inputs.files[0].path == str("test.txt")
+    assert str(desc.inputs.files[0].path) == str("test.txt")
 
 
 def test_sha_sum():
@@ -101,6 +101,7 @@ def test_inputs_dict_consistency():
             "envs": [{"key": "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"}],
             "files": [{"path": "second_file.txt"}, {"path": "test.txt"}],
             "builders": [{"path": "simple.Dockerfile"}],
+            "external": [],
         },
         "sha256": "19ff9c6aaccc44204b9df6e04123e25ccfcd00208c1c3f5d7434a38d9ea031e6",
     }

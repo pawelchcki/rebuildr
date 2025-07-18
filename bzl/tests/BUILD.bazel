@@ -16,7 +16,11 @@ rebuildr_image(
 rebuildr_materialize(
     name = "test_image_materialize",
     src = ":test_image",
-    tags = ["no-cache", "external", "no-remote"],
+    tags = [
+        "external",
+        "no-cache",
+        "no-remote",
+    ],
 )
 
 # Test that the build rule works

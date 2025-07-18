@@ -1,3 +1,4 @@
+from enum import Enum
 import glob
 import hashlib
 import json
@@ -26,9 +27,24 @@ class EnvInput:
 
 
 @dataclass
+class GitHubCommitInput:
+    owner: str
+    repo: str
+    commit: str
+    target_path: str | PurePath
+
+
+@dataclass
 class Inputs:
     files: list[str | FileInput | GlobInput] = field(default_factory=list)
     builders: list[str | EnvInput | FileInput | GlobInput] = field(default_factory=list)
+    external: list[str | GitHubCommitInput] = field(default_factory=list)
+
+
+@dataclass
+class Platform(Enum):
+    LINUX_AMD64 = "linux/amd64"
+    LINUX_ARM64 = "linux/arm64"
 
 
 @dataclass
@@ -37,6 +53,7 @@ class ImageTarget:
     tag: Optional[str] = None
     also_tag_with_content_id: bool = True
     dockerfile: Optional[str | PurePath] = None
+    platform: Optional[str | Platform] = None
     target: Optional[str] = None  # TODO: Targets are not supported yet
 
 

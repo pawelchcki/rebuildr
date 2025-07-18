@@ -10,10 +10,10 @@ Args:
     srcs: Source files to include in the build context.
     descriptor: A Python file containing a rebuildr.Descriptor object.
 """
-load("//bzl/rule:materialize.bzl",  _rebuildr_materialize = "rebuildr_materialize")
-load("//bzl/rule:image.bzl", _rebuildr_image = "rebuildr_image")
-load("//bzl/rule:push.bzl", _rebuildr_push = "rebuildr_push")
 
+load("//bzl/rule:image.bzl", _rebuildr_image = "rebuildr_image")
+load("//bzl/rule:materialize.bzl", _rebuildr_materialize = "rebuildr_materialize")
+load("//bzl/rule:push.bzl", _rebuildr_push = "rebuildr_push")
 
 rebuildr_materialize = _rebuildr_materialize
 rebuildr_image = _rebuildr_image

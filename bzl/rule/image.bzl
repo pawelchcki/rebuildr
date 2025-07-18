@@ -1,5 +1,3 @@
-
-
 load("@bazel_skylib//lib:shell.bzl", "shell")
 load("//bzl/rule:providers.bzl", "RebuildrInfo")
 
@@ -61,7 +59,6 @@ def build_copy_commands(work_dir, input_attrs):
                 copy_commands.append("cp {} {}".format(f.path, work_dir.path))
 
     return "\n".join(copy_commands)
-
 
 def _rebuildr_impl(ctx):
     # Get the input files
@@ -125,6 +122,7 @@ def _rebuildr_impl(ctx):
     # This isn't working because we need to include the transitive runfiles of the _rebuildr_tool
     # The tool likely has Python dependencies that need to be included
     runfiles = ctx.runfiles(files = [ctx.executable._rebuildr_tool, descriptor_file, work_dir])
+
     # Merge with the default runfiles of the rebuildr tool to get all its dependencies
     runfiles = runfiles.merge(ctx.attr._rebuildr_tool[DefaultInfo].default_runfiles)
 
@@ -150,9 +148,9 @@ def _rebuildr_impl(ctx):
     # Return both DefaultInfo and our custom provider
     return [
         DefaultInfo(
-            files = depset([output_file]), 
-            executable = executable_output, 
-            runfiles = runfiles
+            files = depset([output_file]),
+            executable = executable_output,
+            runfiles = runfiles,
         ),
         RebuildrInfo(
             descriptor = descriptor_file,

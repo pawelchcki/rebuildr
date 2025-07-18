@@ -6,21 +6,22 @@
             }
         ],
         "envs": [],
+        "external": [],
         "files": [
-            {
-                "path": "test_example_bzl_deps.txt"
-            },
             {
                 "path": "Dockerfile"
             },
             {
-                "path": "transitive_file.txt"
+                "path": "subdir/file_in_subdir.txt"
+            },
+            {
+                "path": "test_example_bzl_deps.txt"
             },
             {
                 "path": "test_file.txt"
             },
             {
-                "path": "subdir/file_in_subdir.txt"
+                "path": "transitive_file.txt"
             }
         ]
     },
