@@ -1,8 +1,9 @@
 #!/bin/bash
-set -euo pipefail
+set -xeuo pipefail
 
 # Get the output file path from the arguments
 OUTPUT_FILE="$1"
+EXPECTED_OUTPUT="$2"
 
 # Check if the output file exists
 if [[ ! -f ${OUTPUT_FILE} ]]; then
@@ -16,11 +17,9 @@ if [[ ! -s ${OUTPUT_FILE} ]]; then
   exit 1
 fi
 
-# Check if output contains an image ID
-if ! grep -q "^test-image:src-id-[a-f0-9]\+$" "${OUTPUT_FILE}"; then
-  echo "ERROR: Output file does not contain expected image ID pattern."
-  exit 1
-fi
+cat ${OUTPUT_FILE}
+
+diff -uP "${EXPECTED_OUTPUT}" "${OUTPUT_FILE}"
 
 echo "All tests passed!"
 exit 0

@@ -1,0 +1,28 @@
+{
+    "inputs": {
+        "builders": [
+            {
+                "path": "Dockerfile"
+            }
+        ],
+        "envs": [],
+        "files": [
+            {
+                "path": "test_example_bzl_deps.txt"
+            },
+            {
+                "path": "Dockerfile"
+            },
+            {
+                "path": "transitive_file.txt"
+            },
+            {
+                "path": "test_file.txt"
+            },
+            {
+                "path": "subdir/file_in_subdir.txt"
+            }
+        ]
+    },
+    "sha256": "5713fcb384eb38174566140abe9847ab8eff722a9db784b66975dbf3ad0ad56d"
+}

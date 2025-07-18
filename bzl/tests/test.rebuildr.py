@@ -8,10 +8,10 @@ image = Descriptor(
         builders=[],
     ),
     targets=[
-        # ImageTarget(
-        #     repository="test-image",
-        #     tag="latest",
-        #     dockerfile="Dockerfile",
-        # ),
+        ImageTarget(
+            repository="test-image",
+            tag="latest",
+            dockerfile="Dockerfile",
+        ),
     ],
 )

@@ -79,7 +79,7 @@ def _rebuildr_impl(ctx):
 
     descriptor_file = ctx.file.descriptor
 
-    output_file = ctx.actions.declare_file(ctx.label.name + ".out")
+    output_file = ctx.actions.declare_file(ctx.label.name + ".stable")
 
     work_dir = ctx.actions.declare_directory(ctx.label.name + ".work_dir")
 
@@ -136,6 +136,9 @@ def _rebuildr_impl(ctx):
 # Define the rule
 rebuildr_image = rule(
     implementation = _rebuildr_impl,
+    outputs = {
+        "stable": "%{name}.stable",
+    },
     attrs = {
         "srcs": attr.label_list(
             allow_files = True,
