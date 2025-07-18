@@ -1,0 +1,49 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("//:rules.bzl", "rebuildr_image", "rebuildr_materialize")
+
+# Test instance of our rebuildr rule
+rebuildr_image(
+    name = "test_image",
+    srcs = [
+        "Dockerfile",
+        "test_file.txt",
+        "//bzl/test_example_bzl_deps",
+        "//bzl/tests/example_bzl_deps",
+    ],
+    descriptor = "test.rebuildr.py",
+)
+
+rebuildr_materialize(
+    name = "test_image_materialize",
+    src = ":test_image",
+    tags = ["no-cache", "external", "no-remote"],
+)
+
+# Test that the build rule works
+build_test(
+    name = "rebuildr_image_build_test",
+    targets = [
+        ":test_image",
+    ],
+)
+
+build_test(
+    name = "rebuildr_materialize_build_test",
+    targets = [
+        ":test_image_materialize",
+    ],
+)
+
+# Integration test that checks the output
+sh_test(
+    name = "rebuildr_integration_test",
+    srcs = ["test_image_check.sh"],
+    args = [
+        "$(location :test_image.stable)",
+        "$(location :test_image.stable.json)",
+    ],
+    data = [
+        "test_image.stable.json",
+        ":test_image.stable",
+    ],
+)
