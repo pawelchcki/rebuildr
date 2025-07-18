@@ -28,7 +28,7 @@ def _rebuildr_push_impl(ctx):
         outputs = [output],
         command = command,
         tools = [ctx.executable._rebuildr_tool, rebuildr_info.descriptor],
-        execution_requirements = {"no-cache": "", "external": "", "no-remote": ""},
+        execution_requirements = {"no-cache": "", "external": "", "no-remote": "", "no-sandbox": "1"},
         use_default_shell_env = True,
     )
         
