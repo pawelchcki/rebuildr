@@ -4,10 +4,10 @@ load("//bzl/rule:providers.bzl", "RebuildrInfo")
 def _rebuildr_materialize_impl(ctx):
     # Get the RebuildrInfo provider from the src
     rebuildr_info = ctx.attr.src[RebuildrInfo]
-    
+
     # Create the executable output
     output = ctx.actions.declare_file(ctx.label.name + ".out")
-    
+
     command = """
     set -eux
     
@@ -23,7 +23,7 @@ def _rebuildr_materialize_impl(ctx):
         work_dir = shell.quote(rebuildr_info.work_dir.path),
         output = shell.quote(output.path),
     )
-    
+
     ctx.actions.run_shell(
         inputs = [rebuildr_info.work_dir],
         outputs = [output],
@@ -32,7 +32,7 @@ def _rebuildr_materialize_impl(ctx):
         execution_requirements = {"no-cache": "", "external": "", "no-remote": ""},
         use_default_shell_env = True,
     )
-        
+
     return [DefaultInfo(
         files = depset([output]),
     )]
@@ -48,11 +48,10 @@ rebuildr_materialize = rule(
         ),
         "_rebuildr_tool": attr.label(
             default = Label("//rebuildr:rebuildr"),
-            executable = True, 
+            executable = True,
             cfg = "exec",
             doc = "The rebuildr executable",
         ),
-
     },
     doc = "Materializes a Docker image built by rebuildr_image",
 )

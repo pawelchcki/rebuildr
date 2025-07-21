@@ -12,6 +12,8 @@ from rebuildr.descriptor import (
     FileInput,
     GlobInput,
     ImageTarget,
+    GitHubCommitInput,
+    Platform,
 )
 
 
@@ -43,6 +45,19 @@ class StableEnvInput(BaseInput):
 
 
 @dataclass
+class StableGitHubCommitInput(BaseInput):
+    url: str
+    commit: str
+    target_path: str | PurePath
+
+    def sort_key(self) -> str:
+        return f"{self.url}/{self.commit}"
+
+    def hash_update(self, hasher):
+        hasher.update(self.commit.encode())
+
+
+@dataclass
 class StableFileInput:
     path: PurePath
     absolute_path: Path
@@ -50,7 +65,7 @@ class StableFileInput:
     def sort_key(self) -> str:
         return str(self.path)
 
-    def read_bytes(self) -> str:
+    def read_bytes(self) -> bytes:
         with open(self.absolute_path, "rb") as f:
             return f.read()
 
@@ -61,8 +76,9 @@ class StableFileInput:
 @dataclass
 class StableInputs:
     envs: list[StableEnvInput]
-    files: list[FileInput] = field(default_factory=list)
-    builders: list[FileInput] = field(default_factory=list)
+    files: list[StableFileInput] = field(default_factory=list)
+    builders: list[StableFileInput] = field(default_factory=list)
+    external: list[StableGitHubCommitInput] = field(default_factory=list)
 
     def sha_sum(self):
         m = hashlib.sha256()
@@ -75,6 +91,9 @@ class StableInputs:
 
         for file_dep in sorted(self.files, key=lambda x: x.sort_key()):
             file_dep.hash_update(m)
+
+        for external_dep in sorted(self.external, key=lambda x: x.sort_key()):
+            external_dep.hash_update(m)
 
         return m.hexdigest()
 
@@ -98,17 +117,23 @@ class StableImageTarget:
     dockerfile_absolute_path: Optional[Path] = None
     also_tag_with_content_id: bool = True
     target: Optional[str] = None
+    platform: Optional[Platform] = None
 
     def image_tags(self, inputs: StableInputs) -> list[str]:
         tags = []
         if self.tag:
             tags.append(self.repository + ":" + self.tag)
         if self.also_tag_with_content_id:
-            tags.append(self.repository + ":src-id-" + inputs.sha_sum())
+            tags.append(self.content_id_tag(inputs))
+
         return tags
 
     def content_id_tag(self, inputs: StableInputs) -> str:
-        return self.repository + ":src-id-" + inputs.sha_sum()
+        if self.platform is None:
+            return f"{self.repository}:src-id-{inputs.sha_sum()}"
+        else:
+            platform_prefix = self.platform.value.replace("/", "-")
+            return f"{self.repository}:{platform_prefix}-src-id-{inputs.sha_sum()}"
 
 
 @dataclass(frozen=True)
@@ -147,7 +172,8 @@ class StableDescriptor:
             if isinstance(file_dep, FileInput):
                 stable_files.append(
                     StableFileInput(
-                        path=file_dep.path, absolute_path=root_dir / file_dep.path
+                        path=PurePath(file_dep.path),
+                        absolute_path=root_dir / file_dep.path,
                     )
                 )
             elif isinstance(file_dep, GlobInput):
@@ -174,14 +200,19 @@ class StableDescriptor:
             elif isinstance(file_dep, str):
                 stable_files.append(
                     StableFileInput(
-                        path=file_dep, absolute_path=absolute_path / file_dep
+                        path=PurePath(file_dep),
+                        absolute_path=root_dir / PurePath(file_dep),
                     )
                 )
             else:
                 raise ValueError(f"Unexpected input type {type(file_dep)}")
+        stable_files.sort(key=lambda x: x.sort_key())
         return stable_files
 
-    def from_descriptor(descriptor: Descriptor, absolute_path: Path) -> Self:
+    @staticmethod
+    def from_descriptor(
+        descriptor: Descriptor, absolute_path: Path
+    ) -> "StableDescriptor":
         if not absolute_path.is_absolute():
             raise ValueError("absolute_path must be absolute")
         file_deps = StableDescriptor._make_stable_files(
@@ -196,6 +227,23 @@ class StableDescriptor:
         # todo metadata from chosen target (like context build targets must be included in the sha sum of the tool)
         metadata_deps = []
 
+        external_deps = []
+        for dep in descriptor.inputs.external:
+            if isinstance(dep, str):
+                raise ValueError(
+                    f"str definition of external dependency is not yet supported"
+                )
+            elif isinstance(dep, GitHubCommitInput):
+                external_deps.append(
+                    StableGitHubCommitInput(
+                        url=f"https://github.com/{dep.owner}/{dep.repo}.git",
+                        commit=dep.commit,
+                        target_path=dep.target_path,
+                    )
+                )
+            else:
+                raise ValueError(f"Unexpected external input type {type(dep)}")
+
         builder_deps = StableDescriptor._make_stable_files(
             [
                 dep
@@ -206,7 +254,7 @@ class StableDescriptor:
         )
 
         targets = []
-        for target in descriptor.targets:
+        for target in descriptor.targets or []:
             if isinstance(target, ImageTarget):
                 dockerfile = target.dockerfile
                 if dockerfile is None:
@@ -215,26 +263,38 @@ class StableDescriptor:
                 if not dockerfile_path.exists():
                     raise ValueError(f"Dockerfile {dockerfile_path} does not exist")
 
+                platform = None
+                if target.platform is not None and not isinstance(
+                    target.platform, Platform
+                ):
+                    platform = Platform(target.platform)
+
                 targets.append(
                     StableImageTarget(
                         repository=target.repository,
                         tag=target.tag,
-                        dockerfile=dockerfile,
+                        dockerfile=PurePath(dockerfile),
                         dockerfile_absolute_path=dockerfile_path,
                         also_tag_with_content_id=target.also_tag_with_content_id,
+                        platform=platform,
                     )
                 )
 
                 builder_deps.append(
                     StableFileInput(
-                        path=dockerfile,
+                        path=PurePath(dockerfile),
                         absolute_path=dockerfile_path,
                     )
                 )
             else:
                 raise ValueError(f"Unexpected target type {type(target)}")
 
-        inputs = StableInputs(files=file_deps, builders=builder_deps, envs=env_deps)
+        inputs = StableInputs(
+            files=file_deps,
+            builders=builder_deps,
+            envs=env_deps,
+            external=external_deps,
+        )
 
         return StableDescriptor(
             absolute_path=absolute_path,

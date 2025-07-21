@@ -31,8 +31,13 @@ def docker_image_exists_in_registry(image_tag: str) -> bool:
     command = [str(docker_bin()), "manifest", "inspect", image_tag]
     logging.info("Running docker command: {}".format(" ".join(command)))
     try:
-        subprocess.run(command, check=True, capture_output=True, text=True)
+        subprocess.run(command, check=True, capture_output=True, text=True, timeout=100)
         return True
+    except subprocess.TimeoutExpired:
+        logging.info(
+            "Timeout waiting for docker manifest inspect - check VPN connection"
+        )
+        return False
     except subprocess.CalledProcessError:
         return False
 

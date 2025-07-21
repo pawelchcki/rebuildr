@@ -4,7 +4,13 @@ import shutil
 import tarfile
 import tempfile
 
-from rebuildr.stable_descriptor import StableEnvInput, StableFileInput, StableDescriptor
+from rebuildr.stable_descriptor import (
+    StableEnvInput,
+    StableFileInput,
+    StableDescriptor,
+    StableGitHubCommitInput,
+)
+from rebuildr.tools.git import git_clone
 
 
 class TarContext(object):
@@ -32,9 +38,14 @@ class Context(object):
         else:
             self.root_dir = Path(root_dir)
 
-    def temp():
+    @staticmethod
+    def temp() -> "Context":
         root_dir = tempfile.TemporaryDirectory()
         return Context(root_dir)
+
+    @staticmethod
+    def from_path(path: Path) -> "Context":
+        return Context(path)
 
     def src_path(self) -> Path:
         return self.root_dir / "src"
@@ -76,3 +87,10 @@ class Context(object):
                 pass
             else:
                 raise ValueError("Unknown input type")
+
+        for external in descriptor.inputs.external:
+            if isinstance(external, StableGitHubCommitInput):
+                target_path = builders_path / external.target_path
+                target_path.mkdir(parents=True, exist_ok=True)
+
+                git_clone(external.url, target_path, external.commit)

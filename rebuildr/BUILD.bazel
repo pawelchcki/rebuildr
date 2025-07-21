@@ -8,12 +8,15 @@ py_library(
 
 py_binary(
     name = "rebuildr",
-    srcs = ["cli.py"]  ,
-    main = "cli.py",
+    srcs = ["cli.py"],
     imports = ["rebuildr"],
+    legacy_create_init = False,
+    main = "cli.py",
     visibility = ["//visibility:public"],
     deps = [":rebuildr_lib"],
-    legacy_create_init = False,
 )
 
-exports_files(glob(["**/*.py"]), visibility = ["//visibility:public"])
+exports_files(
+    glob(["**/*.py"]),
+    visibility = ["//visibility:public"],
+)
