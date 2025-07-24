@@ -27,6 +27,12 @@ class EnvInput:
 
 
 @dataclass
+class ArgsInput:
+    key: str
+    default: Optional[str] = None
+
+
+@dataclass
 class GitHubCommitInput:
     owner: str
     repo: str
@@ -37,7 +43,9 @@ class GitHubCommitInput:
 @dataclass
 class Inputs:
     files: list[str | FileInput | GlobInput] = field(default_factory=list)
-    builders: list[str | EnvInput | FileInput | GlobInput] = field(default_factory=list)
+    builders: list[str | EnvInput | FileInput | ArgsInput | GlobInput] = field(
+        default_factory=list
+    )
     external: list[str | GitHubCommitInput] = field(default_factory=list)
 
 

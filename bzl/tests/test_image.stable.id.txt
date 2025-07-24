@@ -1,0 +1,1 @@
+registry.ddbuild.io/ci/rebuildr/test-image:src-id-7852770696375654d6a66411e7a593ca24773a31ccd5b1a3cd66d1873f323a13

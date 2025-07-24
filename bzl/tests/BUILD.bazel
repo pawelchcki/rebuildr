@@ -1,5 +1,5 @@
 load("@bazel_skylib//rules:build_test.bzl", "build_test")
-load("//:rules.bzl", "rebuildr_image", "rebuildr_materialize")
+load("//:rules.bzl", "rebuildr_derive", "rebuildr_image", "rebuildr_materialize")
 
 # Test instance of our rebuildr rule
 rebuildr_image(
@@ -11,6 +11,28 @@ rebuildr_image(
         "//bzl/tests/example_bzl_deps",
     ],
     descriptor = "test.rebuildr.py",
+)
+
+rebuildr_image(
+    name = "test_image_with_build_args",
+    srcs = [
+        "Dockerfile",
+        "test_file.txt",
+        "//bzl/test_example_bzl_deps",
+        "//bzl/tests/example_bzl_deps",
+    ],
+    build_args = {
+        "TEST_ARG": "test_value",
+    },
+    descriptor = "test.rebuildr.py",
+)
+
+rebuildr_derive(
+    name = "test_image_with_env",
+    src = ":test_image",
+    build_env = {
+        "TEST_ENV": "test_value",
+    },
 )
 
 rebuildr_materialize(
@@ -49,5 +71,32 @@ sh_test(
     data = [
         "test_image.stable.json",
         ":test_image.stable",
+    ],
+)
+
+# Integration test that checks the output
+sh_test(
+    name = "rebuildr_integration_test_with_build_args",
+    srcs = ["test_image_check.sh"],
+    args = [
+        "$(location :test_image_with_build_args.stable)",
+        "$(location :test_image_with_build_args.stable.json)",
+    ],
+    data = [
+        "test_image_with_build_args.stable.json",
+        ":test_image_with_build_args.stable",
+    ],
+)
+
+sh_test(
+    name = "rebuildr_integration_test_with_env",
+    srcs = ["test_image_check.sh"],
+    args = [
+        "$(location :test_image_with_env.stable)",
+        "$(location :test_image_with_env.stable.json)",
+    ],
+    data = [
+        "test_image_with_env.stable.json",
+        ":test_image_with_env.stable",
     ],
 )

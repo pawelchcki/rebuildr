@@ -34,6 +34,7 @@
 
           build-system = with python3Packages.${system}; [
             hatchling
+            pytest
           ];
 
           checkInputs = with python3Packages.${system}; [
