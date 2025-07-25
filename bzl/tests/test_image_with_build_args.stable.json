@@ -2,7 +2,8 @@
     "inputs": {
         "build_args": [
             {
-                "key": "TEST_ARG"
+                "key": "TEST_ARG",
+                "value": "test_value"
             }
         ],
         "builders": [
@@ -34,5 +35,5 @@
             }
         ]
     },
-    "sha256": "7852770696375654d6a66411e7a593ca24773a31ccd5b1a3cd66d1873f323a13"
+    "sha256": "55b1ebafef3e88ef53f1f44a34eeeff06b510929e71bb58c2fda008d8d96c631"
 }

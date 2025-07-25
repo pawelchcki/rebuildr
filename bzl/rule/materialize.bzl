@@ -8,6 +8,8 @@ def _rebuildr_materialize_impl(ctx):
     # Create the executable output
     output = ctx.actions.declare_file(ctx.label.name + ".out")
 
+    build_args_arg = " ".join([shell.quote("{k}={v}".format(k = k, v = v)) for k, v in rebuildr_info.build_args.items()])
+
     command = """
     set -eux
     
@@ -16,9 +18,10 @@ def _rebuildr_materialize_impl(ctx):
     trap "rm -rf $BUILDX_CONFIG" EXIT
 
     # Run the rebuildr tool to materialize the image
-    {rebuildr} load-py {descriptor} materialize-image | tee {output}
+    {rebuildr} load-py {descriptor} {build_args_arg} materialize-image | tee {output}
     """.format(
         rebuildr = shell.quote(ctx.executable._rebuildr_tool.path),
+        build_args_arg = shell.quote(build_args_arg),
         descriptor = shell.quote(rebuildr_info.descriptor.path),
         work_dir = shell.quote(rebuildr_info.work_dir.path),
         output = shell.quote(output.path),
@@ -28,6 +31,7 @@ def _rebuildr_materialize_impl(ctx):
         inputs = [rebuildr_info.work_dir],
         outputs = [output],
         command = command,
+        env = rebuildr_info.build_env,
         tools = [ctx.executable._rebuildr_tool, rebuildr_info.descriptor],
         execution_requirements = {"no-cache": "", "external": "", "no-remote": ""},
         use_default_shell_env = True,

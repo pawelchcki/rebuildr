@@ -11,6 +11,7 @@ Args:
     descriptor: A Python file containing a rebuildr.Descriptor object.
 """
 
+load("//bzl/rule:derive.bzl", _rebuildr_derive = "rebuildr_derive")
 load("//bzl/rule:image.bzl", _rebuildr_image = "rebuildr_image")
 load("//bzl/rule:materialize.bzl", _rebuildr_materialize = "rebuildr_materialize")
 load("//bzl/rule:push.bzl", _rebuildr_push = "rebuildr_push")
@@ -18,3 +19,4 @@ load("//bzl/rule:push.bzl", _rebuildr_push = "rebuildr_push")
 rebuildr_materialize = _rebuildr_materialize
 rebuildr_image = _rebuildr_image
 rebuildr_push = _rebuildr_push
+rebuildr_derive = _rebuildr_derive

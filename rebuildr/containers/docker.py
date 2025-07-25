@@ -48,7 +48,13 @@ def docker_pull_image(image_tag: str):
     subprocess.run(command, check=True)
 
 
-def docker_push_image(image_tag: str):
+def docker_push_image(image_tag: str, overwrite_in_registry: bool):
     command = [str(docker_bin()), "push", image_tag]
+    if not overwrite_in_registry:
+        exists = docker_image_exists_in_registry(image_tag)
+        if exists:
+            logging.info(f"Image {image_tag} already exists in registry")
+            return
+
     logging.info("Running docker command: {}".format(" ".join(command)))
     subprocess.run(command, check=True)

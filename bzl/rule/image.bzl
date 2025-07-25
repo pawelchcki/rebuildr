@@ -67,7 +67,8 @@ def _rebuildr_impl(ctx):
 
     descriptor_file = ctx.file.descriptor
 
-    output_file = ctx.actions.declare_file(ctx.label.name + ".stable")
+    metadata_file = ctx.actions.declare_file(ctx.label.name + ".stable")
+    stable_image_tag = ctx.actions.declare_file(ctx.label.name + ".stable_image_tag")
 
     work_dir = ctx.actions.declare_directory(ctx.label.name + ".work_dir")
 
@@ -91,28 +92,38 @@ def _rebuildr_impl(ctx):
     # We need to use the runfiles directory to make Python happy
     runfiles_dir = ctx.executable._rebuildr_tool.path + ".runfiles"
 
+    build_args_arg = " ".join([shell.quote("{k}={v}".format(k = k, v = v)) for k, v in ctx.attr.build_args.items()])
+    env_declarations = "\n".join(["export {k}={v}".format(k = shell.quote(k), v = shell.quote(v)) for k, v in ctx.attr.build_env.items()])
+
     # Build the command that will run rebuildr using the right Python environment
     command = """
+    set -xe
     # Set up the Python environment to find runfiles
     # export PYTHONPATH="{runfiles_dir}"
 
     export REBUILDR_OVERRIDE_ROOT_DIR={work_dir}
 
+    {env_declarations}
+
     # Run the rebuildr tool
-    {rebuildr} load-py {descriptor} | tee {output}
+    {rebuildr} load-py {descriptor} {build_args_arg} bazel-stable-metadata {metadata_file} {stable_image_tag}
     """.format(
         runfiles_dir = runfiles_dir,
         rebuildr = shell.quote(ctx.executable._rebuildr_tool.path),
         descriptor = shell.quote(descriptor_file.path),
-        output = shell.quote(output_file.path),
+        metadata_file = shell.quote(metadata_file.path),
+        stable_image_tag = shell.quote(stable_image_tag.path),
         work_dir = shell.quote(work_dir.path),
+        build_args_arg = build_args_arg,
+        env_declarations = env_declarations,
     )
 
     # Execute the rebuildr tool with the right environment
     ctx.actions.run_shell(
         inputs = input_files + [work_dir],
-        outputs = [output_file],
+        outputs = [metadata_file, stable_image_tag],
         command = command,
+        env = ctx.attr.build_env,
         tools = [ctx.executable._rebuildr_tool, descriptor_file],
         progress_message = "Running rebuildr on %s" % ctx.label,
         use_default_shell_env = True,
@@ -127,35 +138,22 @@ def _rebuildr_impl(ctx):
     runfiles = runfiles.merge(ctx.attr._rebuildr_tool[DefaultInfo].default_runfiles)
 
     executable_output = ctx.actions.declare_file(ctx.label.name + ".sh")
-
-    command = """
-    set -eux
-    # Set up the Python environment to find runfiles
-
-    export REBUILDR_OVERRIDE_ROOT_DIR={work_dir}
-
-    # Run the rebuildr tool
-    {rebuildr} load-py {descriptor}
-    """.format(
-        rebuildr = shell.quote(ctx.executable._rebuildr_tool.short_path),
-        descriptor = shell.quote(descriptor_file.path),
-        work_dir = shell.quote(work_dir.short_path),
-        rebuildr_runfiles = shell.quote(runfiles_dir),
-    )
-
     ctx.actions.write(output = executable_output, is_executable = True, content = command)
 
     # Return both DefaultInfo and our custom provider
     return [
         DefaultInfo(
-            files = depset([output_file]),
+            files = depset([metadata_file, stable_image_tag]),
             executable = executable_output,
             runfiles = runfiles,
         ),
         RebuildrInfo(
             descriptor = descriptor_file,
             work_dir = work_dir,
-            stable_file = output_file,
+            stable_file = metadata_file,
+            stable_image_tag = stable_image_tag,
+            build_env = ctx.attr.build_env,
+            build_args = ctx.attr.build_args,
         ),
     ]
 
@@ -175,6 +173,14 @@ rebuildr_image = rule(
             allow_single_file = [".py"],
             mandatory = True,
             doc = "Python descriptor file for the rebuildr build",
+        ),
+        "build_env": attr.string_dict(
+            doc = "Docker build nvironment variables to set for the image build",
+            default = {},
+        ),
+        "build_args": attr.string_dict(
+            doc = "Docker build arguments to pass to the image build",
+            default = {},
         ),
         "_rebuildr_tool": attr.label(
             default = Label("//rebuildr:rebuildr"),
