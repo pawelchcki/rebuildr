@@ -1,3 +1,5 @@
+#! /usr/bin/env nix
+#! nix shell path:../../../../ --command rebuildr load-py
 from rebuildr.descriptor import (
     Descriptor,
     GitHubCommitInput,
@@ -12,7 +14,7 @@ image = Descriptor(
                 owner="aliml92",
                 repo="realworld-gin-sqlc",
                 commit="f01271b55086265c3e07191fff469f4b902ecf96",
-                target_path=".",
+                target_path="/src",
             ),
         ],
     ),

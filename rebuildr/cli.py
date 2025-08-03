@@ -15,7 +15,8 @@ from rebuildr.containers.util import (
 import importlib.util
 import sys
 
-from rebuildr.fs import Context, TarContext
+from rebuildr.context import LocalContext
+from rebuildr.fs import TarContext
 from rebuildr.stable_descriptor import StableDescriptor, StableImageTarget
 
 
@@ -80,7 +81,7 @@ def build_docker(path: str):
         pull_image(content_id_tag)
         return content_id_tag
 
-    ctx = Context.temp()
+    ctx = LocalContext.temp()
     ctx.prepare_from_descriptor(desc)
 
     builder = DockerCLIBuilder()

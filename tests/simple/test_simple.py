@@ -1,5 +1,5 @@
 from rebuildr.cli import load_py_desc
-from rebuildr.fs import Context
+from rebuildr.context import LocalContext
 from tests.utils import resolve_current_dir
 
 current_dir = resolve_current_dir(__file__)
@@ -47,7 +47,7 @@ def test_sha_sum():
 def test_context_prepare():
     desc = load_py_desc(current_dir / "simple.rebuildr.py")
 
-    ctx = Context.temp()
+    ctx = LocalContext.temp()
     ctx.prepare_from_descriptor(desc)
 
     assert str(ctx.root_dir) != str(current_dir)
@@ -67,7 +67,7 @@ def test_context_prepare():
 def test_context_prepare_with_glob():
     desc = load_py_desc(current_dir / "simple_with_glob.rebuildr.py")
 
-    ctx = Context.temp()
+    ctx = LocalContext.temp()
     ctx.prepare_from_descriptor(desc)
 
     assert str(ctx.root_dir) != str(current_dir)

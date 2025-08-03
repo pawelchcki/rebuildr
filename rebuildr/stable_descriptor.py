@@ -6,6 +6,7 @@ import os
 from pathlib import Path, PurePath
 from typing import Optional, Self
 
+from rebuildr.tools.git import git_ls_remote
 from rebuildr.descriptor import (
     Descriptor,
     EnvInput,
@@ -13,6 +14,7 @@ from rebuildr.descriptor import (
     GlobInput,
     ImageTarget,
     GitHubCommitInput,
+    GitRepoInput,
     Platform,
 )
 
@@ -51,7 +53,20 @@ class StableGitHubCommitInput(BaseInput):
     target_path: str | PurePath
 
     def sort_key(self) -> str:
-        return f"{self.url}/{self.commit}"
+        return self.commit
+
+    def hash_update(self, hasher):
+        hasher.update(self.commit.encode())
+
+
+@dataclass
+class StableGitRepoInput(BaseInput):
+    url: str
+    commit: str
+    target_path: str | PurePath
+
+    def sort_key(self) -> str:
+        return self.commit
 
     def hash_update(self, hasher):
         hasher.update(self.commit.encode())
@@ -78,7 +93,9 @@ class StableInputs:
     envs: list[StableEnvInput]
     files: list[StableFileInput] = field(default_factory=list)
     builders: list[StableFileInput] = field(default_factory=list)
-    external: list[StableGitHubCommitInput] = field(default_factory=list)
+    external: list[StableGitHubCommitInput | StableGitRepoInput] = field(
+        default_factory=list
+    )
 
     def sha_sum(self):
         m = hashlib.sha256()
@@ -241,6 +258,14 @@ class StableDescriptor:
                         target_path=dep.target_path,
                     )
                 )
+            elif isinstance(dep, GitRepoInput):
+                external_deps.append(
+                    StableGitRepoInput(
+                        url=dep.url,
+                        commit=git_ls_remote(dep.url, dep.ref),
+                        target_path=dep.target_path,
+                    )
+                )
             else:
                 raise ValueError(f"Unexpected external input type {type(dep)}")
 
@@ -304,11 +329,11 @@ class StableDescriptor:
 
 
 class DescriptorEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, o):
         from pathlib import PurePosixPath
 
-        if isinstance(obj, PurePosixPath):
-            obj = str(obj)
-            return obj
+        if isinstance(o, PurePosixPath):
+            o = str(o)
+            return o
 
-        return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, o)
