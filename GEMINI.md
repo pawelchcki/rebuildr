@@ -43,7 +43,7 @@ This project provides a Nix flake for setting up a consistent development enviro
 **Key Commands:**
 
 *   `nix develop`: Activates a development shell with all the necessary dependencies, including `uv`, `bazel`, and `jdk`.
-*   `pytest`: Once inside the development shell, you can run the test suite using `pytest`.
+*   `uv run pytest`: Once inside the development shell, you can run the test suite using `uv run pytest`.
 *   `nix build`: Builds the `rebuildr` package using Nix.
 
 The Nix flake also configures `pre-commit-hooks` to ensure code quality and consistency.
