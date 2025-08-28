@@ -2,6 +2,8 @@ from pathlib import Path
 import shutil
 import tempfile
 
+from rebuildr.build import DockerCLIBuilder
+from rebuildr.containers.docker import docker_bin
 from rebuildr.stable_descriptor import (
     StableEnvInput,
     StableFileInput,
@@ -31,6 +33,9 @@ class LocalContext(object):
 
     def src_path(self) -> Path:
         return self.root_dir / "src"
+
+    def builders_path(self) -> Path:
+        return self.root_dir / "builders"
 
     def _copy_file(self, src_path: Path, dest_path: Path):
         dest_dir = dest_path.parent
@@ -70,14 +75,29 @@ class LocalContext(object):
             else:
                 raise ValueError("Unknown input type")
 
-        for external in descriptor.inputs.external:
-            if isinstance(external, StableGitHubCommitInput):
-                target_path = builders_path / external.target_path
-                target_path.mkdir(parents=True, exist_ok=True)
+        # for external in descriptor.inputs.external:
+        #     if isinstance(external, StableGitHubCommitInput):
+        #         target_path = builders_path / external.target_path
+        #         target_path.mkdir(parents=True, exist_ok=True)
 
-                git_clone(external.url, target_path, external.commit)
-            elif isinstance(external, StableGitRepoInput):
-                target_path = builders_path / external.target_path
-                target_path.mkdir(parents=True, exist_ok=True)
+        #         git_clone(external.url, target_path, external.commit)
+        #     elif isinstance(external, StableGitRepoInput):
+        #         target_path = builders_path / external.target_path
+        #         target_path.mkdir(parents=True, exist_ok=True)
 
-                git_clone(external.url, target_path, external.commit)
+        #         git_clone(external.url, target_path, external.commit)
+
+    def store_in_docker_current_builder(self, platforms, ref_key):
+        dockerfile_content = f"""
+FROM scratch
+COPY / /
+"""
+        dockerfile_path = self.builders_path() / "Dockerfile"
+        with open(dockerfile_path, "w") as f:
+            f.write(dockerfile_content)
+
+        DockerCLIBuilder().build(
+            root_dir=self.src_path(),
+            dockerfile=dockerfile_path,
+            tags=[ref_key],
+        )
