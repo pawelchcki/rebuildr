@@ -34,8 +34,8 @@ def pull_image(image_tag: str):
         logging.warning("Docker is not available to pull image")
 
 
-def push_image(image_tag: str):
+def push_image(image_tag: str, overwrite_in_registry: bool = False):
     if is_docker_available():
-        docker_push_image(image_tag)
+        docker_push_image(image_tag, overwrite_in_registry)
     else:
         logging.warning("Docker is not available to push image")
