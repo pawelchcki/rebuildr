@@ -143,7 +143,7 @@ def _rebuildr_impl(ctx):
     # Return both DefaultInfo and our custom provider
     return [
         DefaultInfo(
-            files = depset([metadata_file, stable_image_tag]),
+            files = depset([metadata_file, stable_image_tag, work_dir]),
             executable = executable_output,
             runfiles = runfiles,
         ),
@@ -175,7 +175,7 @@ rebuildr_image = rule(
             doc = "Python descriptor file for the rebuildr build",
         ),
         "build_env": attr.string_dict(
-            doc = "Docker build nvironment variables to set for the image build",
+            doc = "Docker build environment variables to set for the image build",
             default = {},
         ),
         "build_args": attr.string_dict(
