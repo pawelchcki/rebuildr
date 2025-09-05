@@ -1,0 +1,23 @@
+"""Starlark rules for building the realworld-gin-sqlc example."""
+
+load(
+    "//bzl/rule:image.bzl",
+    "rebuildr_image",
+)
+load(
+    "//bzl/rule:materialize.bzl",
+    "rebuildr_materialize",
+)
+
+package(default_visibility = ["//visibility:public"])
+
+rebuildr_image(
+    name = "image",
+    srcs = ["Dockerfile"],
+    descriptor = "realworld.rebuildr.py",
+)
+
+rebuildr_materialize(
+    name = "materialize",
+    src = ":image",
+)

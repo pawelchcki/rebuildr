@@ -25,6 +25,7 @@ class DockerCLIBuilder(object):
         cache_from=None,
         platform=None,
         target=None,
+        build_context=None,
     ):
         if dockerfile:
             if not dockerfile.is_absolute():
@@ -48,6 +49,8 @@ class DockerCLIBuilder(object):
         for tag in tags:
             command_builder.add_arg("--tag", tag)
         command_builder.add_arg("--target", target)
+        for context in build_context or []:
+            command_builder.add_arg("--build-context", context)
         command_builder.add_arg("--iidfile", str(iidfile))
         args = command_builder.build([root_dir])
         if self.quiet:
@@ -85,7 +88,7 @@ class DockerCLIBuilder(object):
 
 class _CommandBuilder(object):
     def __init__(self):
-        self._args = ["docker", "build"]
+        self._args = ["docker", "buildx", "build"]
 
     def add_arg(self, name, value):
         if value:

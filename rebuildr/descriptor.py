@@ -7,6 +7,7 @@ from pathlib import Path, PurePath
 from typing import Optional, Self
 
 from dataclasses import asdict, dataclass, field
+from rebuildr import validators
 
 
 @dataclass
@@ -39,6 +40,21 @@ class GitHubCommitInput:
     commit: str
     target_path: str | PurePath
 
+    def __post_init__(self):
+        validators.target_path_is_set(self.target_path, self.__class__)
+        validators.target_path_is_not_root(self.target_path, self.__class__)
+
+
+@dataclass
+class GitRepoInput:
+    url: str
+    ref: str
+    target_path: str | PurePath
+
+    def __post_init__(self):
+        validators.target_path_is_set(self.target_path, self.__class__)
+        validators.target_path_is_not_root(self.target_path, self.__class__)
+
 
 @dataclass
 class Inputs:
@@ -46,7 +62,7 @@ class Inputs:
     builders: list[str | EnvInput | FileInput | ArgsInput | GlobInput] = field(
         default_factory=list
     )
-    external: list[str | GitHubCommitInput] = field(default_factory=list)
+    external: list[str | GitHubCommitInput | GitRepoInput] = field(default_factory=list)
 
 
 @dataclass

@@ -129,7 +129,7 @@ def build_docker(
             logging.info(f"Skipping fetch of tag {content_id_tag} from registry")
         return content_id_tag
 
-    ctx = Context.temp()
+    ctx = LocalContext.temp()
     ctx.prepare_from_descriptor(desc)
 
     builder = DockerCLIBuilder()
