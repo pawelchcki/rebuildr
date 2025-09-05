@@ -55,6 +55,16 @@ rebuildr load-py my-image.rebuildr.py ARG1=value1 ARG2=value2 materialize-image
 
 Build arguments are used by `ArgsInput` entries in your rebuildr descriptor and affect the content hash of the resulting image.
 
+### Environment Variables
+
+- `REBUILDR_OVERRIDE_ROOT_DIR`: When set, overrides the root directory used to resolve inputs in the descriptor. Useful when executing from a different working directory than the descriptor's location.
+- `DOCKER_QUIET`: When set (any value), reduces Docker build output noise in the terminal.
+
+### Platforms and Content-ID Tags
+
+- If an `ImageTarget.platform` is set (e.g., `"linux/amd64"` or `"linux/arm64"`), the generated content-id tag is prefixed with the platform (slashes replaced by dashes), e.g., `linux-amd64-src-id-<hash>`.
+- If `platform` is not set, builds default to `linux/amd64,linux/arm64` and the content-id tag does not include a platform prefix.
+
 ### Examples
 
 Parse a rebuildr file and output metadata:
