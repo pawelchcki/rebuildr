@@ -1,6 +1,12 @@
 load("@bazel_skylib//lib:shell.bzl", "shell")
 load("//bzl/rule:providers.bzl", "RebuildrInfo")
 
+def build_args_string(build_args):
+    return " ".join([shell.quote("{k}={v}".format(k = k, v = v)) for k, v in build_args.items()])
+
+def env_declarations_string(build_env):
+    return "\n".join(["export {k}={v}".format(k = shell.quote(k), v = shell.quote(v)) for k, v in build_env.items()])
+
 def _rebuildr_derive_impl(ctx):
     # Get the RebuildrInfo provider from the src
     rebuildr_info = ctx.attr.src[RebuildrInfo]
@@ -9,17 +15,18 @@ def _rebuildr_derive_impl(ctx):
     stable_image_tag = ctx.actions.declare_file(ctx.label.name + ".stable_image_tag")
 
     work_dir = rebuildr_info.work_dir
+    descriptor_file = rebuildr_info.descriptor
+
     build_args = dict(rebuildr_info.build_args)
     build_args.update(ctx.attr.build_args)
     build_env = dict(rebuildr_info.build_env)
     build_env.update(ctx.attr.build_env)
-    descriptor_file = rebuildr_info.descriptor
+
+    build_args_arg = build_args_string(build_args)
+    env_declarations = env_declarations_string(build_env)
 
     # We need to use the runfiles directory to make Python happy
     runfiles_dir = ctx.executable._rebuildr_tool.path + ".runfiles"
-
-    build_args_arg = " ".join([shell.quote("{k}={v}".format(k = k, v = v)) for k, v in build_args.items()])
-    env_declarations = "\n".join(["export {k}={v}".format(k = shell.quote(k), v = shell.quote(v)) for k, v in build_env.items()])
 
     # Build the command that will run rebuildr using the right Python environment
     command = """
@@ -96,7 +103,7 @@ rebuildr_derive = rule(
             mandatory = True,
         ),
         "build_env": attr.string_dict(
-            doc = "Docker build nvironment variables to set for the derived image build",
+            doc = "Docker build environment variables to set for the derived image build",
             default = {},
         ),
         "build_args": attr.string_dict(

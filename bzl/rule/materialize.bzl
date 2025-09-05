@@ -1,14 +1,17 @@
 load("@bazel_skylib//lib:shell.bzl", "shell")
+load("//bzl/rule:derive.bzl", "build_args_string", "env_declarations_string")
 load("//bzl/rule:providers.bzl", "RebuildrInfo")
 
 def _rebuildr_materialize_impl(ctx):
-    # Get the RebuildrInfo provider from the src
     rebuildr_info = ctx.attr.src[RebuildrInfo]
 
-    # Create the executable output
     output = ctx.actions.declare_file(ctx.label.name + ".out")
 
-    build_args_arg = " ".join([shell.quote("{k}={v}".format(k = k, v = v)) for k, v in rebuildr_info.build_args.items()])
+    build_args = dict(rebuildr_info.build_args)
+    build_env = dict(rebuildr_info.build_env)
+
+    build_args_arg = build_args_string(build_args)
+    env_declarations = env_declarations_string(build_env)
 
     command = """
     set -eux
@@ -17,11 +20,14 @@ def _rebuildr_materialize_impl(ctx):
     export BUILDX_CONFIG=$(mktemp -d)
     trap "rm -rf $BUILDX_CONFIG" EXIT
 
+    {env_declarations}
+
     # Run the rebuildr tool to materialize the image
     {rebuildr} load-py {descriptor} {build_args_arg} materialize-image | tee {output}
     """.format(
         rebuildr = shell.quote(ctx.executable._rebuildr_tool.path),
-        build_args_arg = shell.quote(build_args_arg),
+        build_args_arg = build_args_arg,
+        env_declarations = env_declarations,
         descriptor = shell.quote(rebuildr_info.descriptor.path),
         work_dir = shell.quote(rebuildr_info.work_dir.path),
         output = shell.quote(output.path),

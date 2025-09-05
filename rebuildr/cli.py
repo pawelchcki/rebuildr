@@ -149,6 +149,7 @@ def build_docker(
     builder.build(
         root_dir=ctx.src_path(),
         dockerfile=dockerfile_path,
+        buildargs=build_args,
         tags=tags,
         platform=target_platforms,
     )

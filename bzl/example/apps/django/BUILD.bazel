@@ -1,0 +1,19 @@
+load("//:rules.bzl", "rebuildr_image", "rebuildr_materialize")
+
+rebuildr_image(
+    name = "django_image",
+    srcs = [
+        "Dockerfile",
+    ],
+    descriptor = "django.rebuildr.py",
+)
+
+rebuildr_materialize(
+    name = "django_materialize",
+    src = ":django_image",
+    tags = [
+        "external",
+        "no-cache",
+        "no-remote",
+    ],
+)
