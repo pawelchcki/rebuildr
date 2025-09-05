@@ -12,7 +12,8 @@
         ],
         "envs": [
             {
-                "key": "TEST_ENV"
+                "key": "TEST_ENV",
+                "value": "test_value"
             }
         ],
         "external": [],
@@ -34,5 +35,5 @@
             }
         ]
     },
-    "sha256": "7852770696375654d6a66411e7a593ca24773a31ccd5b1a3cd66d1873f323a13"
+    "sha256": "5dfab8a2b562ebdf3dc0b5fcce9ec289eb256ccbc574ad49a67fdb77f25923c7"
 }

@@ -6,5 +6,8 @@ RebuildrInfo = provider(
         "descriptor": "The descriptor file used to define the image",
         "work_dir": "The directory containing the build context",
         "stable_file": "The stable output file",
+        "stable_image_tag": "The stable image tag",
+        "build_env": "The build environment variables",
+        "build_args": "The build arguments",
     },
 )

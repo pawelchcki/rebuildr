@@ -1,11 +1,22 @@
-from rebuildr.descriptor import Descriptor, GlobInput, Inputs, FileInput, ImageTarget
+from rebuildr.descriptor import (
+    ArgsInput,
+    Descriptor,
+    EnvInput,
+    GlobInput,
+    Inputs,
+    FileInput,
+    ImageTarget,
+)
 
 image = Descriptor(
     inputs=Inputs(
         files=[
             GlobInput(pattern="**/*"),
         ],
-        builders=[],
+        builders=[
+            ArgsInput(key="TEST_ARG"),
+            EnvInput(key="TEST_ENV"),
+        ],
     ),
     targets=[
         ImageTarget(

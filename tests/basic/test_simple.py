@@ -1,5 +1,7 @@
 from rebuildr.cli import load_py_desc
 from rebuildr.context import LocalContext
+from rebuildr.fs import Context
+from rebuildr.stable_descriptor import StableEnvironment
 from tests.utils import resolve_current_dir
 
 current_dir = resolve_current_dir(__file__)
@@ -14,6 +16,8 @@ def test_basic_properties():
 
 def test_sha_sum():
     desc = load_py_desc(current_dir / "simple.rebuildr.py")
+    env = StableEnvironment.from_os_env()
+    env.env["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = ""
 
     import hashlib
 
@@ -26,19 +30,19 @@ def test_sha_sum():
     with open(current_dir / "test.txt", "r") as f:
         m.update(f.read().encode())
 
-    assert desc.sha_sum() == m.hexdigest()
+    assert desc.sha_sum(env) == m.hexdigest()
 
     assert (
-        desc.sha_sum()
+        desc.sha_sum(env)
         == "e2b803a131a4bac358aeb8f6eec7428f576fb7239155ad2a34bef1864054d2a1"
     ), "sha sum is not correct"
 
     # changing the env should change the sha sum
     import os
 
-    os.environ["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = "something else"
+    env.env["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = "something else"
     assert (
-        desc.sha_sum()
+        desc.sha_sum(env)
         == "ebe6d57945599f48f79959fb4206381b488cdacd5cd0c9c2efafa379eca73a49"
     )
     os.environ["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = ""
@@ -87,18 +91,22 @@ def test_context_prepare_with_glob():
 
 def test_with_binary_file():
     desc = load_py_desc(current_dir / "simple_with_binary_file.rebuildr.py")
+    env = StableEnvironment.from_os_env()
     assert (
-        desc.sha_sum()
+        desc.sha_sum(env)
         == "7da05a4083203b1fdb83b111c46f2b20fbcbb219301ecbb1deb076e7557b6a6f"
     )
 
 
 def test_inputs_dict_consistency():
     desc = load_py_desc(current_dir / "simple_with_glob.rebuildr.py")
+    env = StableEnvironment.from_os_env()
+    env.env["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = ""
 
-    assert desc.stable_inputs_dict() == {
+    assert desc.stable_inputs_dict(env) == {
         "inputs": {
             "envs": [{"key": "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"}],
+            "build_args": [],
             "files": [{"path": "second_file.txt"}, {"path": "test.txt"}],
             "builders": [{"path": "simple.Dockerfile"}],
             "external": [],
