@@ -1,9 +1,7 @@
 from rebuildr.descriptor import (
     Descriptor,
     GitHubCommitInput,
-    GlobInput,
     Inputs,
-    FileInput,
     ImageTarget,
 )
 
