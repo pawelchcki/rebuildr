@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePath
-from typing import Optional, Self
+from typing import Optional
 
 from rebuildr.descriptor import (
     ArgsInput,
@@ -191,8 +191,6 @@ class StableDescriptor:
         return self.inputs.sha_sum(env)
 
     def stable_inputs_dict(self, env: StableEnvironment):
-        data = asdict(self.inputs)
-
         # Remove null values and absolute_path keys recursively
         def clean_dict(d):
             if isinstance(d, list):
@@ -244,7 +242,6 @@ class StableDescriptor:
                     file_dep.pattern,
                     root_dir=glob_root,
                     recursive=True,
-                    include_hidden=True,
                 ):
                     path = PurePath(path)
                     absolute_path = glob_root / path
@@ -287,14 +284,12 @@ class StableDescriptor:
             for dep in descriptor.inputs.builders
             if isinstance(dep, ArgsInput)
         ]
-        # todo metadata from chosen target (like context build targets must be included in the sha sum of the tool)
-        metadata_deps = []
 
         external_deps = []
         for dep in descriptor.inputs.external:
             if isinstance(dep, str):
                 raise ValueError(
-                    f"str definition of external dependency is not yet supported"
+                    "str definition of external dependency is not yet supported"
                 )
             elif isinstance(dep, GitHubCommitInput):
                 external_deps.append(

@@ -17,7 +17,7 @@
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     pkgs = forAllSystems (system: nixpkgs.legacyPackages.${system});
-    python3 = forAllSystems (system: pkgs.${system}.python3Minimal);
+    python3 = forAllSystems (system: pkgs.${system}.python310);
     python3Packages = forAllSystems (system: python3.${system}.pkgs.pythonPackages);
     treefmtEval = forAllSystems (system: treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix);
 

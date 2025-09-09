@@ -2,7 +2,6 @@ import logging
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 
 def is_docker_available() -> bool:
@@ -20,7 +19,7 @@ def docker_image_exists_locally(image_tag: str) -> bool:
     command = [str(docker_bin()), "image", "inspect", image_tag]
     logging.info("Running docker command: {}".format(" ".join(command)))
     try:
-        exit_code = subprocess.run(command, check=True, capture_output=True, text=True)
+        subprocess.run(command, check=True, capture_output=True, text=True)
         return True
     except subprocess.CalledProcessError:
         return False
