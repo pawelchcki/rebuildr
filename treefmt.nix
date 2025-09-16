@@ -5,6 +5,7 @@
 
   # python
   programs.ruff-format.enable = true;
+  programs.ruff-check.enable = true;
   # nix
   programs.alejandra.enable = true;
   # toml

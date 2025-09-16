@@ -4,7 +4,6 @@ from rebuildr.descriptor import (
     EnvInput,
     GlobInput,
     Inputs,
-    FileInput,
     ImageTarget,
 )
 

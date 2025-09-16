@@ -1,5 +1,4 @@
-from os import mkdir
-from pathlib import Path, PurePath
+from pathlib import Path
 import shutil
 import tarfile
 import tempfile
@@ -56,7 +55,6 @@ class Context(object):
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         # Preserve file modification and creation times
-        src_stat = src_path.stat()
         shutil.copy2(src_path, dest_path)  # copy2 preserves metadata
 
     def prepare_from_descriptor(self, descriptor: StableDescriptor):

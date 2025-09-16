@@ -1,6 +1,4 @@
 import logging
-from pathlib import Path
-from typing import Optional
 
 from rebuildr.containers.docker import (
     docker_image_exists_in_registry,

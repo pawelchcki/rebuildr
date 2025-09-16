@@ -1,5 +1,4 @@
 from rebuildr.cli import load_py_desc
-from rebuildr.fs import Context
 from rebuildr.stable_descriptor import StableEnvironment
 from tests.utils import resolve_current_dir
 
