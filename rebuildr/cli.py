@@ -14,7 +14,8 @@ from rebuildr.containers.util import (
 import importlib.util
 import sys
 
-from rebuildr.fs import Context, TarContext
+from rebuildr.context import LocalContext
+from rebuildr.fs import TarContext
 from rebuildr.stable_descriptor import (
     StableDescriptor,
     StableEnvironment,

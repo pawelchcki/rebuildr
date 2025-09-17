@@ -94,19 +94,6 @@ class StableGitHubCommitInput(BaseInput):
     target_path: str | PurePath
 
     def sort_key(self) -> str:
-        return f"{self.url}/{self.commit}"
-
-    def hash_update(self, hasher):
-        hasher.update(self.commit.encode())
-
-
-@dataclass
-class StableGitHubCommitInput(BaseInput):
-    url: str
-    commit: str
-    target_path: str | PurePath
-
-    def sort_key(self) -> str:
         return self.commit
 
     def hash_update(self, hasher):

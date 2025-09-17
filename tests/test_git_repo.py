@@ -1,10 +1,4 @@
-from rebuildr.tools.git import git_command
 from pathlib import Path
-import sys
-import tempfile
-import tarfile
-from unittest.mock import patch
-from rebuildr.cli import main
 
 
 def test_git_repo_input(tmp_path: Path):

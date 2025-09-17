@@ -3,7 +3,6 @@ import shutil
 import tempfile
 
 from rebuildr.build import DockerCLIBuilder
-from rebuildr.containers.docker import docker_bin
 from rebuildr.stable_descriptor import (
     StableEnvInput,
     StableFileInput,
@@ -43,7 +42,6 @@ class LocalContext(object):
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         # Preserve file modification and creation times
-        src_stat = src_path.stat()
         shutil.copy2(src_path, dest_path)  # copy2 preserves metadata
 
     def prepare_from_descriptor(self, descriptor: StableDescriptor):
@@ -75,20 +73,20 @@ class LocalContext(object):
             else:
                 raise ValueError("Unknown input type")
 
-        # for external in descriptor.inputs.external:
-        #     if isinstance(external, StableGitHubCommitInput):
-        #         target_path = builders_path / external.target_path
-        #         target_path.mkdir(parents=True, exist_ok=True)
+        for external in descriptor.inputs.external:
+            if isinstance(external, StableGitHubCommitInput):
+                target_path = builders_path / external.target_path
+                target_path.mkdir(parents=True, exist_ok=True)
 
-        #         git_clone(external.url, target_path, external.commit)
-        #     elif isinstance(external, StableGitRepoInput):
-        #         target_path = builders_path / external.target_path
-        #         target_path.mkdir(parents=True, exist_ok=True)
+                git_clone(external.url, target_path, external.commit)
+            elif isinstance(external, StableGitRepoInput):
+                target_path = builders_path / external.target_path
+                target_path.mkdir(parents=True, exist_ok=True)
 
-        #         git_clone(external.url, target_path, external.commit)
+                git_clone(external.url, target_path, external.commit)
 
     def store_in_docker_current_builder(self, platforms, ref_key):
-        dockerfile_content = f"""
+        dockerfile_content = """
 FROM scratch
 COPY / /
 """
