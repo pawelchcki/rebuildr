@@ -27,7 +27,7 @@ jobs:
             pre-commit-hooks
 
       - name: Run formatting check
-        run: nix run .#checks.x86_64-linux.pre-commit-check
+        run: nix fmt --check
 
 
   # Python tests
@@ -48,7 +48,7 @@ jobs:
             nixpkgs
 
       - name: Run tests
-        run: nix run .#checks.x86_64-linux.default
+        run: nix flake check
 
   # Build verification
   build:

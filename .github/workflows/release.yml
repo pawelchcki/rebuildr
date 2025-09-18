@@ -27,8 +27,8 @@ jobs:
 
       - name: Run all checks
         run: |
-          nix run .#checks.x86_64-linux.pre-commit-check
-          nix run .#checks.x86_64-linux.default
+          nix fmt --check
+          nix flake check
 
   # Build release artifacts
   build-release:
