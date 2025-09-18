@@ -25,7 +25,7 @@ jobs:
             nixpkgs
 
       - name: Quick format check
-        run: nix run .#formatter -- --check
+        run: nix run .#checks.pre-commit-check
 
       - name: Quick test
         run: nix run .#checks.default

@@ -27,7 +27,6 @@ jobs:
 
       - name: Run all checks
         run: |
-          nix run .#formatter -- --check
           nix run .#checks.pre-commit-check
           nix run .#checks.default
 

@@ -26,29 +26,9 @@ jobs:
             treefmt-nix
             pre-commit-hooks
 
-      - name: Run treefmt check
-        run: nix run .#formatter -- --check
-
-  # Pre-commit hooks check
-  pre-commit-check:
-    name: Pre-commit Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-
-      - name: Install Flake Dependencies
-        uses: DeterminateSystems/flake-checker-action@v1
-        with:
-          flake-inputs: |
-            nixpkgs
-            pre-commit-hooks
-
-      - name: Run pre-commit checks
+      - name: Run formatting check
         run: nix run .#checks.pre-commit-check
+
 
   # Python tests
   test:
