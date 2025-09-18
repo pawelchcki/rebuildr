@@ -20,6 +20,7 @@ class LocalContext(object):
             self.temp_dir = root_dir
             self.root_dir = Path(root_dir.name)
         else:
+            self.temp_dir = None
             self.root_dir = Path(root_dir)
 
     @staticmethod

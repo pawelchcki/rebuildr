@@ -46,7 +46,7 @@ def git_ls_remote(url: str, ref: str) -> str:
         capture_output=True,
         text=True,
     )
-    if not result.stdout:
+    if not result.stdout or not result.stdout.strip():
         raise ValueError(f"Ref {ref} not found in {url}")
 
     # The output is in the format <hash>\t<ref>, we are interested in the hash

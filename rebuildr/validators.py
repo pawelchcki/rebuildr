@@ -9,7 +9,7 @@ def target_path_is_set(target_path: str | PurePath, klass: type):
 def target_path_is_not_root(target_path: str | PurePath, klass: type):
     path = PurePath(target_path)
 
-    if path == "." or path == "/":
+    if path == PurePath(".") or path == PurePath("/"):
         raise ValueError(
             f"{klass.__name__}.target_path={target_path} must not be the root directory"
         )

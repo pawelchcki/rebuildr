@@ -16,7 +16,7 @@ class TarContext(object):
 
     def prepare_from_descriptor(self, descriptor: StableDescriptor):
         for file in descriptor.inputs.files:
-            self.tar.add(file.absolute_src_path, arcname=file.path)
+            self.tar.add(file.absolute_src_path, arcname=file.target_path)
 
     def copy_to_file(self, path: Path):
         self.tar.close()

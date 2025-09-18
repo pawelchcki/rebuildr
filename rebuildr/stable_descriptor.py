@@ -193,11 +193,11 @@ class StableInputs:
 
     def find_file(self, path: PurePath) -> Optional[StableFileInput]:
         for file_dep in self.files:
-            if file_dep.path == path:
+            if file_dep.target_path == path:
                 return file_dep
 
         for file_dep in self.builders:
-            if file_dep.path == path:
+            if file_dep.target_path == path:
                 return file_dep
 
         return None
@@ -296,7 +296,10 @@ class StableDescriptor:
                         raise ValueError(f"File {absolute_path} does not exist")
 
                     if absolute_path.is_file():
-                        target_path = make_inner_relative_path(PurePath(path))
+                        if glob_dep.target_path is not None:
+                            target_path = PurePath(glob_dep.target_path) / PurePath(path).name
+                        else:
+                            target_path = make_inner_relative_path(PurePath(path))
                         stable_files.append(
                             StableFileInput(
                                 target_path=target_path, absolute_src_path=absolute_path
@@ -352,10 +355,11 @@ class StableDescriptor:
                     )
                 )
             elif isinstance(dep, GitRepoInput):
-                if dep.target_path.is_absolute():
-                    target_path = dep.target_path.relative_to("/")
+                target_path_obj = PurePath(dep.target_path)
+                if target_path_obj.is_absolute():
+                    target_path = target_path_obj.relative_to("/")
                 else:
-                    target_path = dep.target_path
+                    target_path = target_path_obj
 
                 external_deps.append(
                     StableGitRepoInput(
@@ -386,7 +390,7 @@ class StableDescriptor:
                 if not dockerfile_path.exists():
                     raise ValueError(f"Dockerfile {dockerfile_path} does not exist")
 
-                platform = None
+                platform = target.platform
                 if target.platform is not None and not isinstance(
                     target.platform, Platform
                 ):
