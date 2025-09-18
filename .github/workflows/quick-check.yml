@@ -1,0 +1,34 @@
+name: Quick Check
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  quick-check:
+    name: Quick Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Quick format check
+        run: nix run .#formatter -- --check
+
+      - name: Quick test
+        run: nix run .#checks.default
+
+      - name: Quick build
+        run: nix build .#default

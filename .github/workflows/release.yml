@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # Build and test before release
+  pre-release:
+    name: Pre-release Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+            treefmt-nix
+            pre-commit-hooks
+
+      - name: Run all checks
+        run: |
+          nix run .#formatter -- --check
+          nix run .#checks.pre-commit-check
+          nix run .#checks.default
+
+  # Build release artifacts
+  build-release:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: pre-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Build all packages
+        run: |
+          nix build .#default --out-link result-default
+          nix build .#docker-image --out-link result-docker
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nix-build-artifacts
+          path: |
+            result-default
+            result-docker
+          retention-days: 30
+
+  # Multi-platform release builds
+  build-release-matrix:
+    name: Build Release (${{ matrix.system }})
+    runs-on: ${{ matrix.os }}
+    needs: pre-release
+    strategy:
+      matrix:
+        include:
+          - system: x86_64-linux
+            os: ubuntu-latest
+          - system: x86_64-darwin
+            os: macos-latest
+          - system: aarch64-linux
+            os: ubuntu-latest
+          - system: aarch64-darwin
+            os: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Build for ${{ matrix.system }}
+        run: nix build .#packages.${{ matrix.system }}.default --out-link result-${{ matrix.system }}
+
+      - name: Upload ${{ matrix.system }} artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rebuildr-${{ matrix.system }}
+          path: result-${{ matrix.system }}
+          retention-days: 30

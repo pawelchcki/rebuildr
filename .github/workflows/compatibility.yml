@@ -1,0 +1,157 @@
+name: Compatibility
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+
+jobs:
+  # Test with different Nix versions
+  nix-versions:
+    name: Nix ${{ matrix.nix-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nix-version: ['2.18', '2.19', '2.20']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix ${{ matrix.nix-version }}
+        uses: DeterminateSystems/nix-installer-action@v9
+        with:
+          version: ${{ matrix.nix-version }}
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Test with Nix ${{ matrix.nix-version }}
+        run: |
+          echo "Testing with Nix ${{ matrix.nix-version }}"
+          nix --version
+          nix run .#checks.default
+
+  # Test with different Python versions
+  python-versions:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Test with Python ${{ matrix.python-version }}
+        run: |
+          echo "Testing with Python ${{ matrix.python-version }}"
+          
+          # Create a temporary flake with different Python version
+          cat > test-flake.nix << 'EOF'
+          {
+            inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+            outputs = { self, nixpkgs }: let
+              system = "x86_64-linux";
+              pkgs = nixpkgs.legacyPackages.${system};
+              python = pkgs.python${{ matrix.python-version }};
+            in {
+              packages.${system}.test = python.pkgs.buildPythonApplication {
+                pname = "rebuildr-test";
+                version = "0.1.0";
+                src = ./.;
+                format = "pyproject";
+                build-system = with python.pkgs; [ hatchling pytest ];
+                checkInputs = with python.pkgs; [ pytestCheckHook ];
+                propagatedBuildInputs = with pkgs; [ skopeo ];
+              };
+            };
+          }
+          EOF
+          
+          # Test the build
+          nix build -f test-flake.nix
+          
+          echo "Python ${{ matrix.python-version }} compatibility test passed"
+
+  # Test Bazel compatibility
+  bazel-compatibility:
+    name: Bazel Compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Test Bazel build
+        run: |
+          echo "Testing Bazel compatibility..."
+          
+          # Enter dev shell and test Bazel
+          nix develop --command bash -c "
+            echo 'Bazel version:'
+            bazel --version
+            
+            echo 'Testing Bazel build...'
+            bazel build //...
+            
+            echo 'Testing Bazel test...'
+            bazel test //...
+            
+            echo 'Bazel compatibility test passed'
+          "
+
+  # Test Docker compatibility
+  docker-compatibility:
+    name: Docker Compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Test Docker image
+        run: |
+          echo "Testing Docker image compatibility..."
+          
+          # Build Docker image
+          nix build .#docker-image
+          
+          # Load the image
+          docker load < result
+          
+          # Test the image
+          docker run --rm rebuildr:latest --help
+          
+          echo "Docker compatibility test passed"

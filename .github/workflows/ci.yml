@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # Formatting and linting checks
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+            treefmt-nix
+            pre-commit-hooks
+
+      - name: Run treefmt check
+        run: nix run .#formatter -- --check
+
+  # Pre-commit hooks check
+  pre-commit-check:
+    name: Pre-commit Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+            pre-commit-hooks
+
+      - name: Run pre-commit checks
+        run: nix run .#checks.pre-commit-check
+
+  # Python tests
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Run tests
+        run: nix run .#checks.default
+
+  # Build verification
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Build package
+        run: nix build .#default
+
+      - name: Build Docker image
+        run: nix build .#docker-image
+
+  # Multi-platform builds
+  build-matrix:
+    name: Build (${{ matrix.system }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - system: x86_64-linux
+            os: ubuntu-latest
+          - system: x86_64-darwin
+            os: macos-latest
+          - system: aarch64-linux
+            os: ubuntu-latest
+          - system: aarch64-darwin
+            os: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+
+      - name: Build for ${{ matrix.system }}
+        run: nix build .#packages.${{ matrix.system }}.default
+
+  # Development shell verification
+  dev-shell:
+    name: Dev Shell
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Install Flake Dependencies
+        uses: DeterminateSystems/flake-check-action@v1
+        with:
+          flake-inputs: |
+            nixpkgs
+            treefmt-nix
+            pre-commit-hooks
+
+      - name: Enter dev shell and verify tools
+        run: |
+          nix develop --command bash -c "
+            echo 'Verifying development environment...'
+            python --version
+            uv --version
+            git --version
+            bazel --version
+            java -version
+            echo 'Development environment verified successfully!'
+          "
