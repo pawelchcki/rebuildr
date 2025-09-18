@@ -77,13 +77,19 @@ def parse_and_write_bazel_stable_metadata(
 ):
     data, content_id_tag = load_and_parse(path, build_args)
 
-    with open(stable_metadata_file, "w") as f:
-        json.dump(data, f, indent=4, sort_keys=True)
-        f.write("\n")
+    try:
+        with open(stable_metadata_file, "w") as f:
+            json.dump(data, f, indent=4, sort_keys=True)
+            f.write("\n")
+    except (OSError, IOError) as e:
+        raise RuntimeError(f"Failed to write stable metadata file {stable_metadata_file}: {e}")
 
-    with open(stable_image_tag_file, "w") as f:
-        f.write(content_id_tag)
-        f.write("\n")
+    try:
+        with open(stable_image_tag_file, "w") as f:
+            f.write(content_id_tag)
+            f.write("\n")
+    except (OSError, IOError) as e:
+        raise RuntimeError(f"Failed to write stable image tag file {stable_image_tag_file}: {e}")
 
 
 def parse_build_args(args: list[str]) -> dict[str, str]:
