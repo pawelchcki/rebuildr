@@ -25,10 +25,10 @@ jobs:
             nixpkgs
 
       - name: Quick format check
-        run: nix run .#checks.pre-commit-check
+        run: nix run .#checks.x86_64-linux.pre-commit-check
 
       - name: Quick test
-        run: nix run .#checks.default
+        run: nix run .#checks.x86_64-linux.default
 
       - name: Quick build
-        run: nix build .#default
+        run: nix build .#packages.x86_64-linux.default

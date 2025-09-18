@@ -27,7 +27,7 @@ jobs:
             pre-commit-hooks
 
       - name: Run formatting check
-        run: nix run .#checks.pre-commit-check
+        run: nix run .#checks.x86_64-linux.pre-commit-check
 
 
   # Python tests
@@ -48,7 +48,7 @@ jobs:
             nixpkgs
 
       - name: Run tests
-        run: nix run .#checks.default
+        run: nix run .#checks.x86_64-linux.default
 
   # Build verification
   build:
@@ -68,10 +68,10 @@ jobs:
             nixpkgs
 
       - name: Build package
-        run: nix build .#default
+        run: nix build .#packages.x86_64-linux.default
 
       - name: Build Docker image
-        run: nix build .#docker-image
+        run: nix build .#packages.x86_64-linux.docker-image
 
   # Multi-platform builds
   build-matrix:

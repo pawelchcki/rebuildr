@@ -84,16 +84,16 @@ You can run the same checks locally using Nix:
 
 ```bash
 # Format check (includes treefmt)
-nix run .#checks.pre-commit-check
+nix run .#checks.x86_64-linux.pre-commit-check
 
 # Run tests
-nix run .#checks.default
+nix run .#checks.x86_64-linux.default
 
 # Build package
-nix build .#default
+nix build .#packages.x86_64-linux.default
 
 # Build Docker image
-nix build .#docker-image
+nix build .#packages.x86_64-linux.docker-image
 ```
 
 ### Manual Workflow Triggers

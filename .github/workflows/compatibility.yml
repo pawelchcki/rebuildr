@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "Testing with Nix ${{ matrix.nix-version }}"
           nix --version
-          nix run .#checks.default
+          nix run .#checks.x86_64-linux.default
 
   # Test with different Python versions
   python-versions:
@@ -146,7 +146,7 @@ jobs:
           echo "Testing Docker image compatibility..."
           
           # Build Docker image
-          nix build .#docker-image
+          nix build .#packages.x86_64-linux.docker-image
           
           # Load the image
           docker load < result
