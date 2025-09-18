@@ -192,13 +192,9 @@ class StableInputs:
         return m.hexdigest()
 
     def find_file(self, path: PurePath) -> Optional[StableFileInput]:
-        """Find a file dependency by its target path.
+        """Return the file dependency whose ``target_path`` equals ``path``.
 
-        The previous implementation compared against a non-existent
-        ``path`` attribute which raised an ``AttributeError`` at runtime
-        as soon as the method was exercised.  The correct field on
-        ``StableFileInput`` is ``target_path``.  We now use that field
-        consistently for both *files* and *builders* collections.
+        The search is performed first in ``files`` and then in ``builders``.
         """
 
         for file_dep in self.files:
