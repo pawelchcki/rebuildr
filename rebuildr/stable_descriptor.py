@@ -192,12 +192,17 @@ class StableInputs:
         return m.hexdigest()
 
     def find_file(self, path: PurePath) -> Optional[StableFileInput]:
+        """Return the file dependency whose ``target_path`` equals ``path``.
+
+        The search is performed first in ``files`` and then in ``builders``.
+        """
+
         for file_dep in self.files:
-            if file_dep.path == path:
+            if file_dep.target_path == path:
                 return file_dep
 
         for file_dep in self.builders:
-            if file_dep.path == path:
+            if file_dep.target_path == path:
                 return file_dep
 
         return None
