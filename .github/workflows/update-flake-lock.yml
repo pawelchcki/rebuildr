@@ -1,0 +1,35 @@
+name: Update flake.lock
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays at 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix (Determinate Systems)
+        uses: DeterminateSystems/determinate-nix-action@v3
+
+      - name: Enable Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v1
+
+      - name: Update flake.lock
+        uses: DeterminateSystems/update-flake-lock@v21
+        with:
+          pr-title: "chore(nix): update flake.lock"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr-labels: |
+            dependencies
+            automated
+            nix
+

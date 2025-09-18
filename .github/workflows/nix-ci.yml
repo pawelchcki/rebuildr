@@ -1,0 +1,38 @@
+name: Nix CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  nix-checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix (Determinate Systems)
+        uses: DeterminateSystems/determinate-nix-action@v3
+
+      - name: Enable Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v1
+
+      - name: Flake health checks
+        uses: DeterminateSystems/flake-checker-action@v6
+
+      - name: Show Nix version
+        run: nix --version
+
+      - name: nix flake check
+        run: nix flake check --print-build-logs
+
+      - name: Build default package (Linux)
+        if: ${{ startsWith(runner.os, 'Linux') }}
+        run: nix build .#packages.x86_64-linux.default --print-build-logs || nix build .#default --print-build-logs
+
