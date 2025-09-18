@@ -25,7 +25,14 @@ jobs:
             nixpkgs
 
       - name: Quick format check
-        run: nix fmt --check
+        run: |
+          nix fmt
+          if ! git diff --quiet; then
+            echo "❌ Code formatting issues found. Please run 'nix fmt' to fix them."
+            git diff
+            exit 1
+          fi
+          echo "✅ Code formatting is correct"
 
       - name: Quick test
         run: nix flake check

@@ -27,7 +27,12 @@ jobs:
 
       - name: Run all checks
         run: |
-          nix fmt --check
+          nix fmt
+          if ! git diff --quiet; then
+            echo "❌ Code formatting issues found. Please run 'nix fmt' to fix them."
+            git diff
+            exit 1
+          fi
           nix flake check
 
   # Build release artifacts

@@ -18,7 +18,7 @@
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     pkgs = forAllSystems (system: nixpkgs.legacyPackages.${system});
     python3 = forAllSystems (system: pkgs.${system}.python310);
-    python3Packages = forAllSystems (system: python3.${system}.pkgs.pythonPackages);
+    python3Packages = forAllSystems (system: python3.${system}.pkgs);
     treefmtEval = forAllSystems (system: treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix);
 
     rebuildr = forAllSystems (
@@ -34,10 +34,10 @@
 
           build-system = with python3Packages.${system}; [
             hatchling
-            pytest
           ];
 
           checkInputs = with python3Packages.${system}; [
+            pytest
             pytestCheckHook
           ];
 

@@ -8,7 +8,7 @@ This directory contains GitHub Actions workflows that use Determinate Systems Ni
 Main continuous integration workflow that runs on every push and pull request.
 
 **Jobs:**
-- **Format Check**: Runs `nix fmt --check` to verify code formatting
+- **Format Check**: Runs `nix fmt` and checks for formatting changes
 - **Test**: Runs `nix flake check` to run all checks including tests
 - **Build**: Builds the main package and Docker image
 - **Build Matrix**: Multi-platform builds for all supported systems
@@ -83,8 +83,8 @@ All workflows use Determinate Systems Nix actions for:
 You can run the same checks locally using Nix:
 
 ```bash
-# Format check (includes treefmt)
-nix fmt --check
+# Format code (includes treefmt)
+nix fmt
 
 # Run all checks (tests, formatting, etc.)
 nix flake check

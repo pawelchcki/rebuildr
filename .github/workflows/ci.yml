@@ -27,7 +27,14 @@ jobs:
             pre-commit-hooks
 
       - name: Run formatting check
-        run: nix fmt --check
+        run: |
+          nix fmt
+          if ! git diff --quiet; then
+            echo "❌ Code formatting issues found. Please run 'nix fmt' to fix them."
+            git diff
+            exit 1
+          fi
+          echo "✅ Code formatting is correct"
 
 
   # Python tests
