@@ -9,7 +9,11 @@ def target_path_is_set(target_path: str | PurePath, klass: type):
 def target_path_is_not_root(target_path: str | PurePath, klass: type):
     path = PurePath(target_path)
 
-    if path == "." or path == "/":
+    # PurePath comparison with string literals will never be True, so compare
+    # using the string representation instead. We also normalise the path to
+    # posix form to handle both PurePosixPath and PureWindowsPath reliably.
+
+    if str(path) in {".", "/"}:
         raise ValueError(
             f"{klass.__name__}.target_path={target_path} must not be the root directory"
         )
