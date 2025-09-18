@@ -62,7 +62,7 @@ Tests compatibility across different versions and environments.
 ### Determinate Systems Nix Actions
 All workflows use Determinate Systems Nix actions for:
 - **Fast Nix installation**: `DeterminateSystems/nix-installer-action@v9`
-- **Efficient flake dependency caching**: `DeterminateSystems/flake-check-action@v1`
+- **Efficient flake dependency caching**: `DeterminateSystems/flake-checking-action@v1`
 
 ### Comprehensive Testing
 - Code formatting with `treefmt`
@@ -109,7 +109,7 @@ Some workflows can be triggered manually:
 To customize the workflows:
 1. Modify the matrix configurations for different platforms/versions
 2. Add additional checks in the appropriate workflow files
-3. Update the flake inputs list in `flake-check-action` steps
+3. Update the flake inputs list in `flake-checking-action` steps
 4. Adjust schedules in the `on.schedule` sections
 
 ## Requirements
