@@ -19,7 +19,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v9
 
       - name: Install Flake Dependencies
-        uses: DeterminateSystems/flake-checking-action@v1
+        uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
