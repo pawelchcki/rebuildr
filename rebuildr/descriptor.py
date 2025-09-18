@@ -1,4 +1,5 @@
 from enum import Enum
+import logging
 from pathlib import PurePath
 from typing import Optional
 
@@ -9,12 +10,14 @@ from rebuildr import validators
 @dataclass
 class FileInput:
     path: str | PurePath
+    target_path: Optional[str | PurePath] = None
 
 
 @dataclass
 class GlobInput:
     pattern: str
     root_dir: Optional[str | PurePath] = None
+    target_path: Optional[str | PurePath] = None
 
 
 @dataclass
@@ -37,6 +40,7 @@ class GitHubCommitInput:
     target_path: str | PurePath
 
     def __post_init__(self):
+        logging.debug(f"GitHubCommitInput {self.target_path}")
         validators.target_path_is_set(self.target_path, self.__class__)
         validators.target_path_is_not_root(self.target_path, self.__class__)
 

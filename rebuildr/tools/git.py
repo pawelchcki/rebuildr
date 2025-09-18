@@ -14,13 +14,29 @@ def git_clone(url: str, target_path: Path, ref: str):
     logging.info(f"Cloning {url} to {target_path}")
     git_command(["clone", url, str(target_path)])
 
-    logging.info(f"Checking out {ref}")
-    git_command(["checkout", ref], cwd=str(target_path))
+    git_checkout(target_path, ref)
 
 
-def git_checkout(repo_path: Path, ref: str):
+def git_better_clone(url: str, target_path: Path, ref: str):
+    if (target_path / ".git").exists():
+        logging.info(f"Reusing {target_path}")
+        git_checkout(target_path, ref, force=True)
+    else:
+        target_path.mkdir(parents=True, exist_ok=True)
+        logging.info(f"Cloning {url} to {target_path}")
+        git_command(["init", str(target_path)])
+        git_command(["remote", "add", "origin", url], cwd=str(target_path))
+        git_command(["fetch", "origin", ref], cwd=str(target_path))
+        git_checkout(target_path, ref, force=True)
+
+
+def git_checkout(repo_path: Path, ref: str, force: bool = False):
     logging.info(f"Checking out {ref} in {repo_path}")
-    git_command(["checkout", ref], cwd=str(repo_path))
+    args = ["checkout"]
+    if force:
+        args.append("--force")
+    args.append(ref)
+    git_command(args, cwd=str(repo_path))
 
 
 def git_ls_remote(url: str, ref: str) -> str:

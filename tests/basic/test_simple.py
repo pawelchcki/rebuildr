@@ -10,7 +10,7 @@ def test_basic_properties():
     desc = load_py_desc(current_dir / "simple.rebuildr.py")
 
     assert desc.inputs.envs[0].key == "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"
-    assert str(desc.inputs.files[0].path) == str("test.txt")
+    assert str(desc.inputs.files[0].target_path) == str("test.txt")
 
 
 def test_sha_sum():
@@ -26,6 +26,11 @@ def test_sha_sum():
     with open(current_dir / "simple.Dockerfile", "r") as f:
         m.update(f.read().encode())
 
+    m.update("test.txt".encode())
+    with open(current_dir / "test.txt", "r") as f:
+        m.update(f.read().encode())
+
+    m.update("test_renamed.txt".encode())
     with open(current_dir / "test.txt", "r") as f:
         m.update(f.read().encode())
 
@@ -33,7 +38,7 @@ def test_sha_sum():
 
     assert (
         desc.sha_sum(env)
-        == "e2b803a131a4bac358aeb8f6eec7428f576fb7239155ad2a34bef1864054d2a1"
+        == "7c4c0b37896d9404f8c48ba5238b3cb9c2bbba6dda7ea1ed11ff9a42cef4e256"
     ), "sha sum is not correct"
 
     # changing the env should change the sha sum
@@ -42,7 +47,7 @@ def test_sha_sum():
     env.env["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = "something else"
     assert (
         desc.sha_sum(env)
-        == "ebe6d57945599f48f79959fb4206381b488cdacd5cd0c9c2efafa379eca73a49"
+        == "e0ee77349e2e81a4a0d41b337437cc08e490139f55ce88ff4369a192703a7c12"
     )
     os.environ["_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"] = ""
 
@@ -64,6 +69,7 @@ def test_context_prepare():
         "./simple.Dockerfile",
         "./src",
         "./src/test.txt",
+        "./src/test_renamed.txt",
     ]
 
 
@@ -93,7 +99,7 @@ def test_with_binary_file():
     env = StableEnvironment.from_os_env()
     assert (
         desc.sha_sum(env)
-        == "7da05a4083203b1fdb83b111c46f2b20fbcbb219301ecbb1deb076e7557b6a6f"
+        == "1ae50efb0efe369f148826935f1cc6feeff2429f808bfe0aaf904fd8389f6876"
     )
 
 
@@ -106,9 +112,9 @@ def test_inputs_dict_consistency():
         "inputs": {
             "envs": [{"key": "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"}],
             "build_args": [],
-            "files": [{"path": "second_file.txt"}, {"path": "test.txt"}],
-            "builders": [{"path": "simple.Dockerfile"}],
+            "files": [{"target_path": "second_file.txt"}, {"target_path": "test.txt"}],
+            "builders": [{"target_path": "simple.Dockerfile"}],
             "external": [],
         },
-        "sha256": "19ff9c6aaccc44204b9df6e04123e25ccfcd00208c1c3f5d7434a38d9ea031e6",
+        "sha256": "f380815bce00259e731c4361c7ada90095ac6aa5db021668d0fcf6dbdad2fd30",
     }

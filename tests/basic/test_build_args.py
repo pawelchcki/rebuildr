@@ -15,11 +15,11 @@ def test_build_args_are_read():
         "inputs": {
             "envs": [{"key": "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"}],
             "build_args": [{"key": "arg", "value": "value"}],
-            "files": [{"path": "second_file.txt"}, {"path": "test.txt"}],
-            "builders": [{"path": "simple.Dockerfile"}],
+            "files": [{"target_path": "second_file.txt"}, {"target_path": "test.txt"}],
+            "builders": [{"target_path": "simple.Dockerfile"}],
             "external": [],
         },
-        "sha256": "72416769611cf07d0344276cedf44de2e722ea2f7a91ed965dc39c52cbc62d36",
+        "sha256": "1f04b905bc7e8221320ad315a06da50a063ccc1a1576452b56f0cdf9c9271c76",
     }
 
 
@@ -32,9 +32,9 @@ def test_build_args_ignored_for_hashing_if_not_set():
         "inputs": {
             "envs": [{"key": "_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"}],
             "build_args": [{"key": "arg"}],
-            "files": [{"path": "second_file.txt"}, {"path": "test.txt"}],
-            "builders": [{"path": "simple.Dockerfile"}],
+            "files": [{"target_path": "second_file.txt"}, {"target_path": "test.txt"}],
+            "builders": [{"target_path": "simple.Dockerfile"}],
             "external": [],
         },
-        "sha256": "19ff9c6aaccc44204b9df6e04123e25ccfcd00208c1c3f5d7434a38d9ea031e6",
+        "sha256": "f380815bce00259e731c4361c7ada90095ac6aa5db021668d0fcf6dbdad2fd30",
     }

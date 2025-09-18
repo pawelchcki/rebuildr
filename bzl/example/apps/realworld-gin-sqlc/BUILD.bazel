@@ -1,5 +1,6 @@
 """Starlark rules for building the realworld-gin-sqlc example."""
 
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load(
     "//bzl/rule:image.bzl",
     "rebuildr_image",
@@ -20,4 +21,11 @@ rebuildr_image(
 rebuildr_materialize(
     name = "materialize",
     src = ":image",
+)
+
+build_test(
+    name = "test",
+    targets = [
+        ":materialize",
+    ],
 )

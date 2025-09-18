@@ -1,5 +1,6 @@
 from rebuildr.descriptor import (
     Descriptor,
+    FileInput,
     GitHubCommitInput,
     Inputs,
     ImageTarget,
@@ -7,6 +8,12 @@ from rebuildr.descriptor import (
 
 image = Descriptor(
     inputs=Inputs(
+        files=[
+            FileInput(
+                path="Dockerfile",
+                target_path="Dockerfile.1",
+            ),
+        ],
         external=[
             GitHubCommitInput(
                 owner="Sean-Miningah",

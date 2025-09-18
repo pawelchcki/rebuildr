@@ -1,3 +1,4 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load("//:rules.bzl", "rebuildr_image", "rebuildr_materialize")
 
 rebuildr_image(
@@ -15,5 +16,12 @@ rebuildr_materialize(
         "external",
         "no-cache",
         "no-remote",
+    ],
+)
+
+build_test(
+    name = "test",
+    targets = [
+        ":django_materialize",
     ],
 )

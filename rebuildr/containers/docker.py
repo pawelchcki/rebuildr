@@ -1,7 +1,9 @@
 import logging
 import shutil
+import socket
 import subprocess
 from pathlib import Path
+import urllib
 
 
 def is_docker_available() -> bool:
@@ -26,7 +28,31 @@ def docker_image_exists_locally(image_tag: str) -> bool:
 
 
 def docker_image_exists_in_registry(image_tag: str) -> bool:
+    # check if external registry can be dns resolved before fetching manifest
+
+    hostname = image_tag.split("/")[0]
+    # hostname must have at least one dot to attempt to resolve
+    if "." in hostname:
+        logging.info(f"Attempting to resolve hostname {hostname}")
+        try:
+            socket.gethostbyname(hostname)
+        except socket.gaierror:
+            logging.info(f"Could not resolve hostname {hostname}")
+            return False
+
+        # send a http request using built in python library to the hostname with a 5 second timeout
+        try:
+            urllib.request.urlopen(f"http://{hostname}", timeout=1)
+        except Exception:
+            logging.info(f"Could not resolve hostname {hostname} via http")
+            return False
+    else:
+        logging.debug(
+            f"Hostname {hostname} does not have a dot, skipping DNS resolution"
+        )
+
     # Use docker manifest inspect to check if image exists in registry
+
     command = [str(docker_bin()), "manifest", "inspect", image_tag]
     logging.info("Running docker command: {}".format(" ".join(command)))
     try:

@@ -10,6 +10,7 @@ image = Descriptor(
     inputs=Inputs(
         files=[
             FileInput("test.txt"),
+            FileInput("test.txt", target_path="test_renamed.txt"),
         ],
         builders=[
             EnvInput("_TEST_VALUE_IS_NEVER_SET_ON_TEST_SYSTEM"),

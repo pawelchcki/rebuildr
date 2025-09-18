@@ -45,7 +45,12 @@ class DockerCLIBuilder(object):
         command_builder.add_flag("--no-cache", nocache)
         command_builder.add_arg("--progress", self._progress)
         command_builder.add_flag("--pull", pull)
-        command_builder.add_arg("--platform", platform)  # TODO: add platforms build_sha
+        do_load = True
+        # if load is true we can only build current single platform image
+        if do_load:
+            command_builder.add_flag("--load", True)
+        else:
+            command_builder.add_arg("--platform", platform)
         for tag in tags:
             command_builder.add_arg("--tag", tag)
         command_builder.add_arg("--target", target)
@@ -81,6 +86,8 @@ class DockerCLIBuilder(object):
 
         with open(str(iidfile)) as f:
             line = f.readline()
+            if not line.startswith("sha256:"):
+                raise Exception("stop")
             image_id = line.split(":")[1].strip()
 
         return image_id

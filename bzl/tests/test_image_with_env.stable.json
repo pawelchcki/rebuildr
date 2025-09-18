@@ -7,7 +7,7 @@
         ],
         "builders": [
             {
-                "path": "Dockerfile"
+                "target_path": "Dockerfile"
             }
         ],
         "envs": [
@@ -19,21 +19,21 @@
         "external": [],
         "files": [
             {
-                "path": "Dockerfile"
+                "target_path": "Dockerfile"
             },
             {
-                "path": "subdir/file_in_subdir.txt"
+                "target_path": "subdir/file_in_subdir.txt"
             },
             {
-                "path": "test_example_bzl_deps.txt"
+                "target_path": "test_example_bzl_deps.txt"
             },
             {
-                "path": "test_file.txt"
+                "target_path": "test_file.txt"
             },
             {
-                "path": "transitive_file.txt"
+                "target_path": "transitive_file.txt"
             }
         ]
     },
-    "sha256": "5dfab8a2b562ebdf3dc0b5fcce9ec289eb256ccbc574ad49a67fdb77f25923c7"
+    "sha256": "b36d9ad86d4da7b5d9c1db22edc57ddc9836b61eae16050ea4b9a822fbaba69c"
 }

@@ -2,6 +2,7 @@ from dataclasses import asdict, dataclass, field
 import glob
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path, PurePath
 from typing import Optional
@@ -18,6 +19,13 @@ from rebuildr.descriptor import (
     GitHubCommitInput,
     Platform,
 )
+
+
+def make_inner_relative_path(path: PurePath) -> PurePath:
+    if path.is_absolute():
+        return path.relative_to("/")
+    else:
+        return path
 
 
 # class holds copy of os env and passed build args
@@ -115,18 +123,42 @@ class StableGitRepoInput(BaseInput):
 
 @dataclass
 class StableFileInput:
-    path: PurePath
-    absolute_path: Path
+    target_path: PurePath
+    absolute_src_path: Path
+    ignore_target_path: bool = False  # ignore target_path for calculating sha sum
 
     def sort_key(self) -> str:
-        return str(self.path)
+        return str(self.target_path)
 
     def read_bytes(self) -> bytes:
-        with open(self.absolute_path, "rb") as f:
+        with open(self.absolute_src_path, "rb") as f:
             return f.read()
 
     def hash_update(self, hasher):
+        mode = self.absolute_src_path.stat().st_mode
+
+        logging.debug(f"hash_update {str(self.target_path)} with mode {mode}")
+        if not self.ignore_target_path:
+            hasher.update(str(self.target_path).encode())
+        # if the mode is not the default 644 then include it in the hash - only to avoid updating tests
+        if mode != 0o100644:
+            hasher.update(str(mode).encode())
         hasher.update(self.read_bytes())
+
+    @staticmethod
+    def make_stable(root_dir: Path, src: FileInput) -> "StableFileInput":
+        target_path = src.target_path
+        if target_path is None:
+            target_path = PurePath(src.path)
+        else:
+            target_path = PurePath(target_path)
+
+        target_path = make_inner_relative_path(target_path)
+
+        return StableFileInput(
+            target_path=target_path,
+            absolute_src_path=root_dir / src.path,
+        )
 
 
 @dataclass
@@ -217,7 +249,9 @@ class StableDescriptor:
             return {
                 k: clean_dict(v)
                 for k, v in d.items()
-                if v is not None and k != "absolute_path"
+                if v is not None
+                and k != "absolute_src_path"
+                and k != "ignore_target_path"
             }
 
         inputs = clean_dict(asdict(self.inputs))
@@ -243,20 +277,16 @@ class StableDescriptor:
         stable_files = []
         for file_dep in files:
             if isinstance(file_dep, FileInput):
-                stable_files.append(
-                    StableFileInput(
-                        path=PurePath(file_dep.path),
-                        absolute_path=root_dir / file_dep.path,
-                    )
-                )
+                stable_files.append(StableFileInput.make_stable(root_dir, file_dep))
             elif isinstance(file_dep, GlobInput):
+                glob_dep = file_dep
                 glob_root = (
                     root_dir
-                    if file_dep.root_dir is None
-                    else root_dir / file_dep.root_dir
+                    if glob_dep.root_dir is None
+                    else root_dir / glob_dep.root_dir
                 )
                 for path in glob.glob(
-                    file_dep.pattern,
+                    glob_dep.pattern,
                     root_dir=glob_root,
                     recursive=True,
                 ):
@@ -266,14 +296,17 @@ class StableDescriptor:
                         raise ValueError(f"File {absolute_path} does not exist")
 
                     if absolute_path.is_file():
+                        target_path = make_inner_relative_path(PurePath(path))
                         stable_files.append(
-                            StableFileInput(path=path, absolute_path=absolute_path)
+                            StableFileInput(
+                                target_path=target_path, absolute_src_path=absolute_path
+                            )
                         )
             elif isinstance(file_dep, str):
                 stable_files.append(
                     StableFileInput(
-                        path=PurePath(file_dep),
-                        absolute_path=root_dir / PurePath(file_dep),
+                        target_path=PurePath(file_dep),
+                        absolute_src_path=root_dir / PurePath(file_dep),
                     )
                 )
             else:
@@ -309,19 +342,26 @@ class StableDescriptor:
                     "str definition of external dependency is not yet supported"
                 )
             elif isinstance(dep, GitHubCommitInput):
+                target_path = make_inner_relative_path(PurePath(dep.target_path))
+
                 external_deps.append(
                     StableGitHubCommitInput(
                         url=f"https://github.com/{dep.owner}/{dep.repo}.git",
                         commit=dep.commit,
-                        target_path=dep.target_path,
+                        target_path=target_path,
                     )
                 )
             elif isinstance(dep, GitRepoInput):
+                if dep.target_path.is_absolute():
+                    target_path = dep.target_path.relative_to("/")
+                else:
+                    target_path = dep.target_path
+
                 external_deps.append(
                     StableGitRepoInput(
                         url=dep.url,
                         commit=git_ls_remote(dep.url, dep.ref),
-                        target_path=dep.target_path,
+                        target_path=target_path,
                     )
                 )
             else:
@@ -365,8 +405,9 @@ class StableDescriptor:
 
                 builder_deps.append(
                     StableFileInput(
-                        path=PurePath(dockerfile),
-                        absolute_path=dockerfile_path,
+                        target_path=PurePath(dockerfile),
+                        absolute_src_path=dockerfile_path,
+                        ignore_target_path=True,
                     )
                 )
             else:

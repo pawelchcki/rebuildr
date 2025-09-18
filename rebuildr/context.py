@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import shutil
 import tempfile
@@ -10,7 +11,7 @@ from rebuildr.stable_descriptor import (
     StableGitHubCommitInput,
     StableGitRepoInput,
 )
-from rebuildr.tools.git import git_clone
+from rebuildr.tools.git import git_better_clone
 
 
 class LocalContext(object):
@@ -36,11 +37,16 @@ class LocalContext(object):
     def builders_path(self) -> Path:
         return self.root_dir / "builders"
 
-    def _copy_file(self, src_path: Path, dest_path: Path):
+    @staticmethod
+    def _copy_file(src_path: Path, dest_path: Path):
         dest_dir = dest_path.parent
+        if dest_dir.is_file():
+            raise ValueError(
+                f"Destination {dest_dir} is a file but should be a directory, check configured inputs"
+            )
 
+        logging.debug(f"Copying {src_path} to {dest_path}")
         dest_dir.mkdir(parents=True, exist_ok=True)
-
         # Preserve file modification and creation times
         shutil.copy2(src_path, dest_path)  # copy2 preserves metadata
 
@@ -51,23 +57,15 @@ class LocalContext(object):
         builders_path = self.root_dir
 
         for file in descriptor.inputs.files:
-            dest_path = files_path / file.path
-            src_path = file.absolute_path
-
-            dest_dir = dest_path.parent
-            dest_dir.mkdir(parents=True, exist_ok=True)
-
-            shutil.copy(src_path, dest_path)
+            dest_path = files_path / file.target_path
+            src_path = file.absolute_src_path
+            LocalContext._copy_file(src_path, dest_path)
 
         for file in descriptor.inputs.builders:
             if isinstance(file, StableFileInput):
-                dest_path = builders_path / file.path
-                src_path = file.absolute_path
-
-                dest_dir = dest_path.parent
-                dest_dir.mkdir(parents=True, exist_ok=True)
-
-                shutil.copy(src_path, dest_path)
+                dest_path = builders_path / file.target_path
+                src_path = file.absolute_src_path
+                LocalContext._copy_file(src_path, dest_path)
             elif isinstance(file, StableEnvInput):
                 pass
             else:
@@ -78,24 +76,29 @@ class LocalContext(object):
                 target_path = builders_path / external.target_path
                 target_path.mkdir(parents=True, exist_ok=True)
 
-                git_clone(external.url, target_path, external.commit)
+                git_better_clone(external.url, target_path, external.commit)
+                self.store_in_docker_current_builder(external.commit, target_path)
             elif isinstance(external, StableGitRepoInput):
                 target_path = builders_path / external.target_path
                 target_path.mkdir(parents=True, exist_ok=True)
 
-                git_clone(external.url, target_path, external.commit)
+                git_better_clone(external.url, target_path, external.commit)
+                self.store_in_docker_current_builder(external.commit, target_path)
 
-    def store_in_docker_current_builder(self, platforms, ref_key):
+    def store_in_docker_current_builder(self, ref_key, path: Path):
         dockerfile_content = """
 FROM scratch
-COPY / /
-"""
-        dockerfile_path = self.builders_path() / "Dockerfile"
+COPY / /"""
+        dockerfile_path = self.builders_path() / "__internal_cachestore.Dockerfile"
+        self.builders_path().mkdir(parents=True, exist_ok=True)
+
         with open(dockerfile_path, "w") as f:
             f.write(dockerfile_content)
-
+        tag = f"x__internal_cachestore_{ref_key}"
+        logging.debug(f"Storing {path} in {tag}")
         DockerCLIBuilder().build(
-            root_dir=self.src_path(),
+            root_dir=path,
             dockerfile=dockerfile_path,
-            tags=[ref_key],
+            platform="linux/amd64",
+            tags=[tag],
         )
