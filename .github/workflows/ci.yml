@@ -6,7 +6,7 @@ on:
     branches: [main, master]
 jobs:
   # Formatting and linting checks
-  format-check:
+  flake-checker:
     name: Format Check
     runs-on: ubuntu-latest
     steps:
@@ -16,82 +16,30 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v9
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
-        with:
-          flake-inputs: |
-            nixpkgs
-            treefmt-nix
-            pre-commit-hooks
-      - name: Run formatting check
+  nix-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - id: set-matrix
+        name: Generate Nix Matrix
         run: |
-          nix fmt
-          if ! git diff --quiet; then
-            echo "❌ Code formatting issues found. Please run 'nix fmt' to fix them."
-            git diff
-            exit 1
-          fi
-          echo "✅ Code formatting is correct"
-  # Python tests
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-      - name: Install Flake Dependencies
-        uses: DeterminateSystems/flake-checker-action@v1
-        with:
-          flake-inputs: |
-            nixpkgs
-      - name: Run tests
-        run: nix flake check
-  # Build verification
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-      - name: Install Flake Dependencies
-        uses: DeterminateSystems/flake-checker-action@v1
-        with:
-          flake-inputs: |
-            nixpkgs
-      - name: Build package
-        run: nix build .#packages.x86_64-linux.default
-      - name: Build Docker image
-        run: nix build .#packages.x86_64-linux.docker-image
-  # Multi-platform builds
-  build-matrix:
-    name: Build (${{ matrix.system }})
+          set -Eeu
+          matrix="$(nix eval --json '.#githubActions.matrix')"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+  nix-build:
+    name: ${{ matrix.name }} (${{ matrix.system }})
+    needs: nix-matrix
     runs-on: ${{ matrix.os }}
     strategy:
-      matrix:
-        include:
-          - system: x86_64-linux
-            os: ubuntu-latest
-          - system: x86_64-darwin
-            os: macos-latest
-          - system: aarch64-linux
-            os: ubuntu-latest
-          - system: aarch64-darwin
-            os: macos-latest
+      matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-      - name: Install Flake Dependencies
-        uses: DeterminateSystems/flake-checker-action@v1
-        with:
-          flake-inputs: |
-            nixpkgs
-      - name: Build for ${{ matrix.system }}
-        run: nix build .#packages.${{ matrix.system }}.default
-  # Development shell verification
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - run: nix build -L '.#${{ matrix.attr }}'
+  # Development shell verificatrion / run pytest 
   dev-shell:
     name: Dev Shell
     runs-on: ubuntu-latest
@@ -100,21 +48,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-      - name: Install Flake Dependencies
-        uses: DeterminateSystems/flake-checker-action@v1
-        with:
-          flake-inputs: |
-            nixpkgs
-            treefmt-nix
-            pre-commit-hooks
       - name: Enter dev shell and verify tools
         run: |-
           nix develop --command bash -c "
             echo 'Verifying development environment...'
-            python --version
-            uv --version
-            git --version
-            bazel --version
-            java -version
+            uv tool run pytest
+            bazel test //...
             echo 'Development environment verified successfully!'
           "

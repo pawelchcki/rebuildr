@@ -1,4 +1,4 @@
-name: Quick Check
+name: Quick checks without matrix computation
 on:
   push:
     branches: [main, master]
@@ -14,11 +14,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-      - name: Install Flake Dependencies
-        uses: DeterminateSystems/flake-checker-action@v1
-        with:
-          flake-inputs: |
-            nixpkgs
       - name: Quick format check
         run: |
           nix fmt
