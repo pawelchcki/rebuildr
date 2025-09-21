@@ -16,15 +16,15 @@ class TarContext(object):
 
     def __del__(self):
         """Clean up resources when object is destroyed"""
-        if hasattr(self, 'tar') and self.tar:
+        if hasattr(self, "tar") and self.tar:
             try:
                 self.tar.close()
-            except:
+            except Exception:
                 pass
-        if hasattr(self, 'temp_file') and self.temp_file:
+        if hasattr(self, "temp_file") and self.temp_file:
             try:
                 self.temp_file.close()
-            except:
+            except Exception:
                 pass
 
     def prepare_from_descriptor(self, descriptor: StableDescriptor):
@@ -32,7 +32,9 @@ class TarContext(object):
             try:
                 self.tar.add(file.absolute_src_path, arcname=file.path)
             except (OSError, IOError, tarfile.TarError) as e:
-                raise RuntimeError(f"Failed to add file {file.absolute_src_path} to tar: {e}")
+                raise RuntimeError(
+                    f"Failed to add file {file.absolute_src_path} to tar: {e}"
+                )
 
     def copy_to_file(self, path: Path):
         try:

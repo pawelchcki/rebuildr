@@ -1,11 +1,9 @@
 name: Dependencies
-
 on:
   schedule:
     # Run weekly on Mondays at 2 AM UTC
     - cron: '0 2 * * 1'
   workflow_dispatch:
-
 jobs:
   # Update Nix flake inputs
   update-flake-inputs:
@@ -14,10 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
@@ -25,17 +21,15 @@ jobs:
             nixpkgs
             treefmt-nix
             pre-commit-hooks
-
       - name: Update flake inputs
         run: |
           nix flake update
-          
+
           # Check if there are any changes
           if git diff --quiet flake.lock; then
             echo "No updates available"
             exit 0
           fi
-
       - name: Test updated inputs
         run: |
           nix fmt
@@ -45,27 +39,15 @@ jobs:
             exit 1
           fi
           nix flake check
-
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: update flake inputs"
           title: "chore: update flake inputs"
-          body: |
-            This PR updates the Nix flake inputs to their latest versions.
-            
-            **Changes:**
-            - Updated flake inputs
-            - All checks pass with updated dependencies
-            
-            **Testing:**
-            - ✅ Formatting checks pass
-            - ✅ Pre-commit hooks pass  
-            - ✅ Tests pass
+          body: "This PR updates the Nix flake inputs to their latest versions.\n\n**Changes:**\n- Updated flake inputs\n- All checks pass with updated dependencies\n\n**Testing:**\n- ✅ Formatting checks pass\n- ✅ Pre-commit hooks pass  \n- ✅ Tests pass\n"
           branch: update-flake-inputs
           delete-branch: true
-
   # Security audit
   security-audit:
     name: Security Audit
@@ -73,20 +55,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Run security audit
         run: |
           echo "Running security audit..."
-          
+
           # Check for known vulnerabilities in Python dependencies
           nix develop --command bash -c "
             if command -v uv &> /dev/null; then
@@ -94,13 +73,12 @@ jobs:
               uv tree --check
             fi
           "
-          
+
           # Build and test to ensure nothing is broken
           nix build .#packages.x86_64-linux.default
           nix flake check
-          
-          echo "Security audit completed successfully"
 
+          echo "Security audit completed successfully"
   # Dependency freshness check
   dependency-freshness:
     name: Dependency Freshness
@@ -108,24 +86,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Check dependency freshness
-        run: |
+        run: |-
           echo "Checking dependency freshness..."
-          
+
           # Show current flake input versions
           nix flake metadata --json | jq -r '.locks.nodes | to_entries[] | select(.value.type == "github") | "\(.key): \(.value.locked.rev[0:7]) (\(.value.locked.lastModified))"'
-          
+
           # Check if we're using latest nixpkgs
           echo "Current nixpkgs channel: $(nix flake metadata --json | jq -r '.locks.nodes.nixpkgs.locked.rev[0:7]')"
-          
+
           echo "Dependency freshness check completed"

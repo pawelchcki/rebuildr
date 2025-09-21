@@ -1,12 +1,10 @@
 name: Quick Check
-
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
-
 jobs:
   quick-check:
     name: Quick Check
@@ -14,16 +12,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Quick format check
         run: |
           nix fmt
@@ -33,9 +28,7 @@ jobs:
             exit 1
           fi
           echo "✅ Code formatting is correct"
-
       - name: Quick test
         run: nix flake check
-
       - name: Quick build
         run: nix build .#packages.x86_64-linux.default

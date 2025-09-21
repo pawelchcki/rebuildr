@@ -1,14 +1,12 @@
 name: Compatibility
-
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   schedule:
     # Run weekly on Sundays at 3 AM UTC
     - cron: '0 3 * * 0'
-
 jobs:
   # Test with different Nix versions
   nix-versions:
@@ -20,24 +18,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix ${{ matrix.nix-version }}
         uses: DeterminateSystems/nix-installer-action@v9
         with:
           version: ${{ matrix.nix-version }}
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Test with Nix ${{ matrix.nix-version }}
         run: |
           echo "Testing with Nix ${{ matrix.nix-version }}"
           nix --version
           nix flake check
-
   # Test with different Python versions
   python-versions:
     name: Python ${{ matrix.python-version }}
@@ -48,20 +42,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Test with Python ${{ matrix.python-version }}
         run: |
           echo "Testing with Python ${{ matrix.python-version }}"
-          
+
           # Create a temporary flake with different Python version
           cat > test-flake.nix << 'EOF'
           {
@@ -83,12 +74,11 @@ jobs:
             };
           }
           EOF
-          
+
           # Test the build
           nix build -f test-flake.nix
-          
-          echo "Python ${{ matrix.python-version }} compatibility test passed"
 
+          echo "Python ${{ matrix.python-version }} compatibility test passed"
   # Test Bazel compatibility
   bazel-compatibility:
     name: Bazel Compatibility
@@ -96,34 +86,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Test Bazel build
-        run: |
-          echo "Testing Bazel compatibility..."
-          
-          # Enter dev shell and test Bazel
-          nix develop --command bash -c "
-            echo 'Bazel version:'
-            bazel --version
-            
-            echo 'Testing Bazel build...'
-            bazel build //...
-            
-            echo 'Testing Bazel test...'
-            bazel test //...
-            
-            echo 'Bazel compatibility test passed'
-          "
-
+        run: "echo \"Testing Bazel compatibility...\"\n\n# Enter dev shell and test Bazel\nnix develop --command bash -c \"\n  echo 'Bazel version:'\n  bazel --version\n  \n  echo 'Testing Bazel build...'\n  bazel build //...\n  \n  echo 'Testing Bazel test...'\n  bazel test //...\n  \n  echo 'Bazel compatibility test passed'\n\"\n"
   # Test Docker compatibility
   docker-compatibility:
     name: Docker Compatibility
@@ -131,27 +102,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Test Docker image
-        run: |
+        run: |-
           echo "Testing Docker image compatibility..."
-          
+
           # Build Docker image
           nix build .#packages.x86_64-linux.docker-image
-          
+
           # Load the image
           docker load < result
-          
+
           # Test the image
           docker run --rm rebuildr:latest --help
-          
+
           echo "Docker compatibility test passed"

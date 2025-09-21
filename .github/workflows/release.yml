@@ -1,10 +1,8 @@
 name: Release
-
 on:
   push:
     tags:
       - 'v*'
-
 jobs:
   # Build and test before release
   pre-release:
@@ -13,10 +11,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
@@ -24,7 +20,6 @@ jobs:
             nixpkgs
             treefmt-nix
             pre-commit-hooks
-
       - name: Run all checks
         run: |
           nix fmt
@@ -34,7 +29,6 @@ jobs:
             exit 1
           fi
           nix flake check
-
   # Build release artifacts
   build-release:
     name: Build Release Artifacts
@@ -43,21 +37,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Build all packages
         run: |
           nix build .#packages.x86_64-linux.default --out-link result-default
           nix build .#packages.x86_64-linux.docker-image --out-link result-docker
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -66,7 +56,6 @@ jobs:
             result-default
             result-docker
           retention-days: 30
-
   # Multi-platform release builds
   build-release-matrix:
     name: Build Release (${{ matrix.system }})
@@ -86,19 +75,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v9
-
       - name: Install Flake Dependencies
         uses: DeterminateSystems/flake-checker-action@v1
         with:
           flake-inputs: |
             nixpkgs
-
       - name: Build for ${{ matrix.system }}
         run: nix build .#packages.${{ matrix.system }}.default --out-link result-${{ matrix.system }}
-
       - name: Upload ${{ matrix.system }} artifact
         uses: actions/upload-artifact@v4
         with:
