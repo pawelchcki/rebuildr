@@ -55,8 +55,10 @@ rebuildr load-py <rebuildr-file> [build-arg=value ...] materialize-image
 
 **Build and push Docker image**:
 ```bash
-rebuildr load-py <rebuildr-file> [build-arg=value ...] push-image
+rebuildr load-py <rebuildr-file> [build-arg=value ...] push-image [<override-tag>]
 ```
+
+If `<override-tag>` is provided, the built image will be re-tagged to that value and the override tag will be pushed instead.
 
 **Build tar archive**:
 ```bash

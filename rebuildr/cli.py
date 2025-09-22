@@ -190,7 +190,7 @@ def print_usage():
         "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] materialize-image"
     )
     print(
-        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] push-image"
+        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] push-image [<override-tag>]"
     )
     print("  load-py <rebuildr-file> build-tar <output>")
 
@@ -250,9 +250,21 @@ def parse_cli_parse_py(args):
         return
 
     if "push-image" == args[0]:
+        override_tag = None
+        if len(args) > 1 and args[1] != "":
+            override_tag = args[1]
+
         tag = build_docker(file_path, build_args, fetch_if_not_local=False)
-        push_image(tag, overwrite_in_registry=False)
-        print(tag)
+
+        if override_tag is not None and override_tag != tag:
+            from rebuildr.containers.util import tag_image
+
+            tag_image(tag, override_tag)
+            push_image(override_tag, overwrite_in_registry=False)
+            print(override_tag)
+        else:
+            push_image(tag, overwrite_in_registry=False)
+            print(tag)
         return
 
     if "build-tar" == args[0]:
