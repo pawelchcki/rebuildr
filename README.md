@@ -1,10 +1,85 @@
 # Rebuildr
 
-Tool used for mass building dependency based docker images
+Rebuildr is a powerful tool for building reproducible Docker images with dependency-based caching. It uses Python descriptor files to define build processes and integrates seamlessly with Bazel for large-scale builds.
 
-Work In progress
+## Features
 
-See: REBUILDR_FORMAT.md for file format description
+- **Reproducible Builds**: Content-addressable image tagging ensures identical builds produce identical tags
+- **Dependency Tracking**: Automatically tracks all inputs (files, environment variables, external dependencies) to determine when rebuilds are necessary
+- **Bazel Integration**: Custom Bazel rules for seamless integration into existing build systems
+- **Multi-Platform Support**: Build for multiple architectures (AMD64, ARM64) with platform-specific tagging
+- **External Dependencies**: Pin external content (GitHub repositories) to specific commits for reproducible builds
+- **Flexible Input Types**: Support for files, glob patterns, environment variables, and build arguments
+
+## Quick Start
+
+### Installation
+
+```bash
+# Using Docker (recommended for quick setup)
+docker run --rm ghcr.io/pawelchcki/rebuildr/dist:latest tool/tar | tar x -C ~/.local/bin/
+
+# Using Nix (recommended for development)
+nix profile install github:pawelchcki/rebuildr
+```
+
+### Basic Usage
+
+1. **Create a descriptor file** (`myapp.rebuildr.py`):
+```python
+from rebuildr.descriptor import Descriptor, Inputs, ImageTarget
+
+image = Descriptor(
+    inputs=Inputs(
+        files=["src/", "Dockerfile"],
+    ),
+    targets=[
+        ImageTarget(
+            repository="my-registry/myapp",
+            tag="latest",
+            dockerfile="Dockerfile",
+        )
+    ]
+)
+```
+
+2. **Build the image**:
+```bash
+rebuildr load-py myapp.rebuildr.py materialize-image
+```
+
+## Bazel Integration
+
+Rebuildr provides custom Bazel rules for seamless integration:
+
+```python
+# BUILD.bazel
+load("@rebuildr//:rebuildr.bzl", "rebuildr_image", "rebuildr_materialize")
+
+rebuildr_image(
+    name = "webapp_image",
+    srcs = glob(["src/**/*"]) + ["Dockerfile"],
+    descriptor = "webapp.rebuildr.py",
+    build_args = {"VERSION": "1.0.0"},
+)
+
+rebuildr_materialize(
+    name = "webapp_build",
+    src = ":webapp_image",
+)
+```
+
+Build with: `bazel run //path/to:webapp_build`
+
+## Documentation
+
+- **[Installation Guide](INSTALL.md)**: Detailed installation instructions
+- **[File Format](REBUILDR_FORMAT.md)**: Complete descriptor file format reference
+- **[API Reference](API_REFERENCE.md)**: Python API documentation
+- **[Bazel Integration](BAZEL_INTEGRATION.md)**: Using rebuildr with Bazel
+- **[Examples](examples/)**: Comprehensive examples and use cases
+- **[Troubleshooting](TROUBLESHOOTING.md)**: Common issues and solutions
+- **[Contributing](CONTRIBUTING.md)**: Development setup and contribution guidelines
 
 ## Installation
 
