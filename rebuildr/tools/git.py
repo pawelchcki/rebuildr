@@ -12,7 +12,9 @@ def git_command(args: List[str], **kwargs):
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Git command failed: {' '.join(['git'] + args)} - {e}")
     except FileNotFoundError:
-        raise RuntimeError("Git command not found. Please ensure git is installed and in PATH.")
+        raise RuntimeError(
+            "Git command not found. Please ensure git is installed and in PATH."
+        )
 
 
 def git_clone(url: str, target_path: Path, ref: str):

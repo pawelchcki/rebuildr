@@ -1,6 +1,6 @@
 [project]
 name = "rebuildr"
-version = "0.1.0"
+version = "0.2-dev"
 description = ""
 requires-python = ">=3.10"
 authors = [{ name = "Paweł Chojnacki", email = "pawelchcki@gmail.com" }]

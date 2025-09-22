@@ -83,7 +83,9 @@ class LocalContext(object):
                 try:
                     target_path.mkdir(parents=True, exist_ok=True)
                 except (OSError, IOError) as e:
-                    raise RuntimeError(f"Failed to create external directory {target_path}: {e}")
+                    raise RuntimeError(
+                        f"Failed to create external directory {target_path}: {e}"
+                    )
 
                 git_better_clone(external.url, target_path, external.commit)
                 self.store_in_docker_current_builder(external.commit, target_path)
@@ -92,7 +94,9 @@ class LocalContext(object):
                 try:
                     target_path.mkdir(parents=True, exist_ok=True)
                 except (OSError, IOError) as e:
-                    raise RuntimeError(f"Failed to create external directory {target_path}: {e}")
+                    raise RuntimeError(
+                        f"Failed to create external directory {target_path}: {e}"
+                    )
 
                 git_better_clone(external.url, target_path, external.commit)
                 self.store_in_docker_current_builder(external.commit, target_path)
