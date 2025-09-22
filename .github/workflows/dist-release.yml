@@ -42,4 +42,4 @@ jobs:
       - name: Build and push dist image with tag
         run: |
           # Build and push with the version tag
-          REBUILDR_TAG="${{ steps.get_tag.outputs.TAG_NAME }}" nix develop --command rebuildr load-py ci/dist/dist.rebuildr.py push-image
+          REBUILDR_TAG="${{ steps.get_tag.outputs.TAG_NAME }}" nix run .#rebuildr -- load-py ci/dist/dist.rebuildr.py push-image
