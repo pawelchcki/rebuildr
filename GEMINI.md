@@ -24,7 +24,7 @@ The `rebuildr` command-line tool is the primary way to use the system. The entry
 
 *   `rebuildr load-py <rebuildr-file>`: Parses a `.rebuildr.py` file and prints its stable descriptor as a JSON object.
 *   `rebuildr load-py <rebuildr-file> materialize-image`: Builds a Docker image from the given `.rebuildr.py` file.
-*   `rebuildr load-py <rebuildr-file> push-image`: Builds and pushes a Docker image to a registry.
+*   `rebuildr load-py <rebuildr-file> push-image [<override-tag>]`: Builds and pushes a Docker image to a registry. If an override tag is provided, the image is re-tagged and the override tag is pushed.
 *   `rebuildr load-py <rebuildr-file> build-tar <output>`: Creates a tar archive from the specified inputs.
 
 ### Building with Bazel

@@ -83,3 +83,9 @@ def docker_push_image(image_tag: str, overwrite_in_registry: bool):
 
     logging.info("Running docker command: {}".format(" ".join(command)))
     subprocess.run(command, check=True)
+
+
+def docker_tag_image(source_tag: str, target_tag: str):
+    command = [str(docker_bin()), "image", "tag", source_tag, target_tag]
+    logging.info("Running docker command: {}".format(" ".join(command)))
+    subprocess.run(command, check=True)
