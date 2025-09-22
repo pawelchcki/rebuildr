@@ -81,6 +81,24 @@ Build with: `bazel run //path/to:webapp_build`
 - **[Troubleshooting](TROUBLESHOOTING.md)**: Common issues and solutions
 - **[Contributing](CONTRIBUTING.md)**: Development setup and contribution guidelines
 
+## Installation
+
+Quick start:
+
+```bash
+# Via Docker (recommended)
+docker run --rm ghcr.io/pawelchcki/rebuildr/dist:latest tool/tar | tar x -C ~/.local/bin/
+
+# Via Nix
+nix profile install github:pawelchcki/rebuildr
+```
+
+For other installation methods, updates, and info on verifying your setup, refer to [INSTALL.md](INSTALL.md).
+
+## Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, coding style, and tips to get started.
+
 ## CLI Interface
 
 Rebuildr provides a command-line interface for parsing, building, and managing Docker images based on rebuildr descriptor files.
@@ -112,8 +130,10 @@ rebuildr load-py <rebuildr-file> [build-arg=value ...] materialize-image
 
 **Build and push Docker image**:
 ```bash
-rebuildr load-py <rebuildr-file> [build-arg=value ...] push-image
+rebuildr load-py <rebuildr-file> [build-arg=value ...] push-image [<override-tag>]
 ```
+
+If `<override-tag>` is provided, the built image will be re-tagged to that value and the override tag will be pushed instead.
 
 **Build tar archive**:
 ```bash

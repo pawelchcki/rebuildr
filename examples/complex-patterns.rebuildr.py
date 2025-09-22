@@ -6,19 +6,15 @@ image = Descriptor(
         files=[
             # Include all Python files
             GlobInput(pattern="src/**/*.py"),
-            
             # Include all configuration files
             GlobInput(pattern="config/**/*.json"),
             GlobInput(pattern="config/**/*.yaml"),
             GlobInput(pattern="config/**/*.yml"),
-            
             # Include specific files
             FileInput(path="requirements.txt"),
             FileInput(path="Dockerfile"),
-            
             # Include documentation
             GlobInput(pattern="docs/**/*.md"),
-            
             # Include tests
             GlobInput(pattern="tests/**/*.py"),
         ],
@@ -35,5 +31,5 @@ image = Descriptor(
             dockerfile="Dockerfile",
             also_tag_with_content_id=True,
         )
-    ]
+    ],
 )

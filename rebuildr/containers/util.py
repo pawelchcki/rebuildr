@@ -5,6 +5,7 @@ from rebuildr.containers.docker import (
     docker_image_exists_locally,
     docker_pull_image,
     docker_push_image,
+    docker_tag_image,
     is_docker_available,
 )
 
@@ -37,3 +38,10 @@ def push_image(image_tag: str, overwrite_in_registry: bool = False):
         docker_push_image(image_tag, overwrite_in_registry)
     else:
         logging.warning("Docker is not available to push image")
+
+
+def tag_image(source_tag: str, target_tag: str):
+    if is_docker_available():
+        docker_tag_image(source_tag, target_tag)
+    else:
+        logging.warning("Docker is not available to tag image")

@@ -30,5 +30,5 @@ image = Descriptor(
             target="development",  # Target the development stage
             also_tag_with_content_id=True,
         ),
-    ]
+    ],
 )

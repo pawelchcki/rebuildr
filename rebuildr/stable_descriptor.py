@@ -37,10 +37,10 @@ class StableEnvironment:
         self.env = env
         self.build_args = build_args
 
-    def get_env(self, key: str) -> str:
+    def get_env(self, key: str) -> Optional[str]:
         return self.env.get(key)
 
-    def get_build_arg(self, key: str) -> str:
+    def get_build_arg(self, key: str) -> Optional[str]:
         return self.build_args.get(key)
 
     @staticmethod
@@ -131,11 +131,17 @@ class StableFileInput:
         return str(self.target_path)
 
     def read_bytes(self) -> bytes:
-        with open(self.absolute_src_path, "rb") as f:
-            return f.read()
+        try:
+            with open(self.absolute_src_path, "rb") as f:
+                return f.read()
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to read file {self.absolute_src_path}: {e}")
 
     def hash_update(self, hasher):
-        mode = self.absolute_src_path.stat().st_mode
+        try:
+            mode = self.absolute_src_path.stat().st_mode
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to stat file {self.absolute_src_path}: {e}")
 
         logging.debug(f"hash_update {str(self.target_path)} with mode {mode}")
         if not self.ignore_target_path:
@@ -192,12 +198,17 @@ class StableInputs:
         return m.hexdigest()
 
     def find_file(self, path: PurePath) -> Optional[StableFileInput]:
+        """Return the file dependency whose ``target_path`` equals ``path``.
+
+        The search is performed first in ``files`` and then in ``builders``.
+        """
+
         for file_dep in self.files:
-            if file_dep.path == path:
+            if file_dep.target_path == path:
                 return file_dep
 
         for file_dep in self.builders:
-            if file_dep.path == path:
+            if file_dep.target_path == path:
                 return file_dep
 
         return None

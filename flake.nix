@@ -5,6 +5,8 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
     pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
+    nix-github-actions.url = "github:nix-community/nix-github-actions";
+    nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
@@ -13,12 +15,13 @@
     systems,
     treefmt-nix,
     pre-commit-hooks,
+    nix-github-actions,
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     pkgs = forAllSystems (system: nixpkgs.legacyPackages.${system});
     python3 = forAllSystems (system: pkgs.${system}.python310);
-    python3Packages = forAllSystems (system: python3.${system}.pkgs.pythonPackages);
+    python3Packages = forAllSystems (system: python3.${system}.pkgs);
     treefmtEval = forAllSystems (system: treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix);
 
     rebuildr = forAllSystems (
@@ -34,10 +37,10 @@
 
           build-system = with python3Packages.${system}; [
             hatchling
-            pytest
           ];
 
           checkInputs = with python3Packages.${system}; [
+            pytest
             pytestCheckHook
           ];
 
@@ -47,8 +50,12 @@
         }
     );
   in {
+    githubActions = nix-github-actions.lib.mkGithubMatrix {inherit (self) checks;};
     packages = forAllSystems (system: {
       default = rebuildr.${system} {
+        doCheck = false;
+      };
+      rebuildr = rebuildr.${system} {
         doCheck = false;
       };
 

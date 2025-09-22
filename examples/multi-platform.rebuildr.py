@@ -29,5 +29,5 @@ image = Descriptor(
             dockerfile="Dockerfile",
             also_tag_with_content_id=True,
         ),
-    ]
+    ],
 )

@@ -7,7 +7,14 @@ from typing import List
 def git_command(args: List[str], **kwargs):
     if kwargs.get("check") is None:
         kwargs["check"] = True
-    return subprocess.run(["git"] + args, **kwargs)
+    try:
+        return subprocess.run(["git"] + args, **kwargs)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Git command failed: {' '.join(['git'] + args)} - {e}")
+    except FileNotFoundError:
+        raise RuntimeError(
+            "Git command not found. Please ensure git is installed and in PATH."
+        )
 
 
 def git_clone(url: str, target_path: Path, ref: str):
@@ -41,13 +48,16 @@ def git_checkout(repo_path: Path, ref: str, force: bool = False):
 
 def git_ls_remote(url: str, ref: str) -> str:
     logging.info(f"Listing remote for {url} with ref {ref}")
-    result = git_command(
-        ["ls-remote", "--heads", "--tags", url, ref],
-        capture_output=True,
-        text=True,
-    )
-    if not result.stdout:
-        raise ValueError(f"Ref {ref} not found in {url}")
+    try:
+        result = git_command(
+            ["ls-remote", "--heads", "--tags", url, ref],
+            capture_output=True,
+            text=True,
+        )
+        if not result.stdout:
+            raise ValueError(f"Ref {ref} not found in {url}")
 
-    # The output is in the format <hash>\t<ref>, we are interested in the hash
-    return result.stdout.split()[0]
+        # The output is in the format <hash>\t<ref>, we are interested in the hash
+        return result.stdout.split()[0]
+    except Exception as e:
+        raise RuntimeError(f"Failed to list remote refs for {url}: {e}")
