@@ -60,7 +60,7 @@ Tests compatibility across different versions and environments.
 
 ### Determinate Systems Nix Actions
 All workflows use Determinate Systems Nix actions for:
-- **Fast Nix installation**: `DeterminateSystems/nix-installer-action@v9`
+- **Fast Nix installation**: `DeterminateSystems/nix-installer-action@v20`
 - **Efficient flake dependency caching**: `DeterminateSystems/flake-checker-action@v1`
 
 ### Comprehensive Testing
