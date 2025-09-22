@@ -1,7 +1,6 @@
-name: Release
+name: Publish Content-ID based distribution image
 on:
-  push:
-    branches: [main, master]
+  pull_request:
 jobs:
   # Build and test before release
   pre-release:
