@@ -26,6 +26,7 @@ class DockerCLIBuilder(object):
         platform=None,
         target=None,
         build_context=None,
+        do_load=False,
     ):
         if dockerfile:
             if not dockerfile.is_absolute():
@@ -45,7 +46,6 @@ class DockerCLIBuilder(object):
             command_builder.add_flag("--no-cache", nocache)
             command_builder.add_arg("--progress", self._progress)
             command_builder.add_flag("--pull", pull)
-            do_load = True
             # if load is true we can only build current single platform image
             if do_load:
                 command_builder.add_flag("--load", True)
