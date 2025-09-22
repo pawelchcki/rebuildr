@@ -17,6 +17,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         run: |
+          mkdir -p $HOME/.local/bin/;
           docker run --rm ghcr.io/pawelchcki/rebuildr/dist:src-id-019ea034a8ab6e0357878e9df802541a3752fcf74b65bca2f8d1ad165b232a2b tool/tar | tar x -C $HOME/.local/bin/;
           echo $HOME/.local/bin >> $GITHUB_PATH
       - name: Set up Docker Buildx
