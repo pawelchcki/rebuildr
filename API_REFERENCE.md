@@ -51,7 +51,6 @@ target = ImageTarget(
     repository="my-registry/myapp",
     tag="latest",
     dockerfile="Dockerfile",
-    also_tag_with_content_id=True
 )
 ```
 
@@ -194,6 +193,8 @@ image = Descriptor(
 
 ### Multi-Platform Build
 
+by default all builds are multiplatform
+
 ```python
 from rebuildr.descriptor import Descriptor, Inputs, ImageTarget, Platform
 
@@ -205,12 +206,27 @@ image = Descriptor(
         ImageTarget(
             repository="my-registry/myapp",
             tag="latest",
-            platform=Platform.LINUX_AMD64,
         ),
+    ]
+)
+```
+
+### Single-Platform Build
+
+you have to Specify platform manually to build only a single target
+
+```python
+from rebuildr.descriptor import Descriptor, Inputs, ImageTarget, Platform
+
+image = Descriptor(
+    inputs=Inputs(
+        files=["src/", "Dockerfile"],
+    ),
+    targets=[
         ImageTarget(
             repository="my-registry/myapp",
             tag="latest",
-            platform=Platform.LINUX_ARM64,
+            platform=Platform.LINUX_AMD64
         ),
     ]
 )
@@ -278,7 +294,7 @@ image = Descriptor(
             GlobInput(pattern="src/**/*.py"),
             GlobInput(pattern="tests/**/*.py"),
             GlobInput(pattern="*.json"),
-            "requirements.txt",
+            "requirements.txt", # you can use simple strings they will be interpreted as FileInputs
         ],
     ),
     targets=[
