@@ -145,7 +145,7 @@ def build_docker(
 
     if content_id_tag and image_exists_locally(content_id_tag):
         logging.info(f"Tag {content_id_tag} already exists")
-        return content_id_tag
+        return BuildDockerResult(tags=[content_id_tag], content_id_tag=content_id_tag)
     elif content_id_tag and image_exists_in_registry(content_id_tag):
         logging.info(f"Tag {content_id_tag} already exists in registry")
         if fetch_if_not_local:
@@ -206,7 +206,7 @@ def print_usage():
         "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] materialize-image"
     )
     print(
-        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] push-image [<override-tag>]"
+        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] push-image [--only-content-id-tag] [<override-tag>] ",
     )
     print("  load-py <rebuildr-file> build-tar <output>")
 
@@ -250,6 +250,9 @@ def parse_cli_parse_py(args):
     if len(args) == 0:
         parse_and_print_py(file_path, build_args)
         return
+    if any(arg in ("-h", "--help") for arg in args):
+        print_usage()
+        return
 
     if "bazel-stable-metadata" == args[0]:
         if len(args) < 2:
@@ -267,13 +270,24 @@ def parse_cli_parse_py(args):
         return
 
     if "push-image" == args[0]:
+        if len(args) > 1 and args[1] == "--only-content-id-tag":
+            only_content_id_tag = True
+            args = args[1:]
+        else:
+            only_content_id_tag = False
+
         override_tag = None
         if len(args) > 1 and args[1] != "":
             override_tag = args[1]
 
         tags = build_docker(file_path, build_args, fetch_if_not_local=False)
-        specific_tag = tags.most_specific_tag()
+
         tags_to_push = tags.tags
+
+        if only_content_id_tag:
+            tags_to_push = [tags.content_id_tag]
+
+        specific_tag = tags.most_specific_tag()
 
         if override_tag is not None:
             from rebuildr.containers.util import tag_image
@@ -294,10 +308,6 @@ def parse_cli_parse_py(args):
             return
         else:
             build_tar(file_path, args[1])
-        return
-
-    if args[0] == "-h" or args[0] == "--help":
-        print_usage()
         return
 
     logging.error(f"Unknown command: {args[0]}")
