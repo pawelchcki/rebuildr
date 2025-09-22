@@ -37,4 +37,4 @@ jobs:
         run: echo "$GH_TOKEN" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
       - name: Build and push dist image with tag
         run: |
-          REBUILDR_TAG="latest" nix develop --command rebuildr load-py ci/dist/dist.rebuildr.py push-image
+          REBUILDR_TAG="latest" nix run .#rebuildr -- load-py ci/dist/dist.rebuildr.py push-image

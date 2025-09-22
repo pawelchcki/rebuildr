@@ -55,6 +55,9 @@
       default = rebuildr.${system} {
         doCheck = false;
       };
+      rebuildr = rebuildr.${system} {
+        doCheck = false;
+      };
 
       docker-image = pkgs.${system}.dockerTools.buildImage {
         name = "rebuildr";
