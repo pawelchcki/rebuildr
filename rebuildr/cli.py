@@ -105,9 +105,25 @@ def parse_build_args(args: list[str]) -> dict[str, str]:
     return build_args
 
 
+class BuildDockerResult:
+    tags: list[str]
+    content_id_tag: str | None
+
+    def __init__(self, tags: list[str], content_id_tag: str):
+        self.tags = tags
+        self.content_id_tag = content_id_tag
+
+    def most_specific_tag(self) -> str:
+        if self.content_id_tag is not None:
+            return self.content_id_tag
+        else:
+            return self.tags[0]
+
+
+# builds docker returns a list of tags associated with the build
 def build_docker(
     path: str, build_args: dict[str, str], fetch_if_not_local: bool = True
-):
+) -> BuildDockerResult:
     desc = load_py_desc(path)
     env = StableEnvironment.from_os_env(build_args)
 
@@ -137,17 +153,17 @@ def build_docker(
             pull_image(content_id_tag)
         else:
             logging.info(f"Skipping fetch of tag {content_id_tag} from registry")
-        return content_id_tag
-
-    ctx = LocalContext.temp()
-    ctx.prepare_from_descriptor(desc)
-
-    builder = DockerCLIBuilder()
+        return BuildDockerResult(tags=[content_id_tag], content_id_tag=content_id_tag)
 
     tags = target.image_tags(desc.inputs, env)
 
     if len(tags) == 0:
         raise ValueError("No tags specified")
+
+    ctx = LocalContext.temp()
+    ctx.prepare_from_descriptor(desc)
+
+    builder = DockerCLIBuilder()
 
     dockerfile_path = ctx.root_dir / target.dockerfile
     target_platforms = None
@@ -164,10 +180,7 @@ def build_docker(
         platform=target_platforms,
     )
 
-    if content_id_tag:
-        return content_id_tag
-    else:
-        return tags[0]
+    return BuildDockerResult(tags=tags, content_id_tag=content_id_tag)
 
 
 def build_tar(path: str, output: str):
@@ -246,7 +259,8 @@ def parse_cli_parse_py(args):
         return
 
     if "materialize-image" == args[0]:
-        print(build_docker(file_path, build_args))
+        tags = build_docker(file_path, build_args)
+        print(tags.most_specific_tag())
         return
 
     if "push-image" == args[0]:
@@ -254,17 +268,21 @@ def parse_cli_parse_py(args):
         if len(args) > 1 and args[1] != "":
             override_tag = args[1]
 
-        tag = build_docker(file_path, build_args, fetch_if_not_local=False)
+        tags = build_docker(file_path, build_args, fetch_if_not_local=False)
+        specific_tag = tags.most_specific_tag()
+        tags_to_push = tags.tags
 
-        if override_tag is not None and override_tag != tag:
+        if override_tag is not None:
             from rebuildr.containers.util import tag_image
 
-            tag_image(tag, override_tag)
-            push_image(override_tag, overwrite_in_registry=False)
-            print(override_tag)
-        else:
+            tag_image(specific_tag, override_tag)
+            tags_to_push = [override_tag]
+            specific_tag = override_tag
+
+        for tag in tags_to_push:
             push_image(tag, overwrite_in_registry=False)
-            print(tag)
+        print(specific_tag)
+
         return
 
     if "build-tar" == args[0]:
