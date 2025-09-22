@@ -167,8 +167,10 @@ def build_docker(
 
     dockerfile_path = ctx.root_dir / target.dockerfile
     target_platforms = None
+    do_load = False
     if target.platform is not None:
         target_platforms = target.platform.value
+        do_load = True
     else:
         target_platforms = "linux/amd64,linux/arm64"
 
@@ -178,6 +180,7 @@ def build_docker(
         buildargs=build_args,
         tags=tags,
         platform=target_platforms,
+        do_load=do_load,
     )
 
     return BuildDockerResult(tags=tags, content_id_tag=content_id_tag)

@@ -1,6 +1,8 @@
 
 # Rebuildr File Format (`<name>.rebuildr.py`)
 
+For detailed information about the Rebuildr Python API, see [API reference](API_REFERENCE.md).
+
 The `<name>.rebuildr.py` file is a Python script that defines a build process for `rebuildr`. The core of this file is the creation of a `Descriptor` object, which is assigned to a variable named `image`. This `Descriptor` object specifies all the inputs required for the build and the targets to be produced.
 
 Every file must export the descriptor via `image` variable.
