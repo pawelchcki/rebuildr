@@ -1,6 +1,5 @@
 from pathlib import Path
 import tarfile
-import tempfile
 
 from rebuildr.cli import load_py_desc
 from rebuildr.fs import TarContext
@@ -51,4 +50,6 @@ def test_validators_target_path_checks():
         except ValueError:
             pass
         else:
-            raise AssertionError("target_path_is_not_root did not raise for invalid value")
+            raise AssertionError(
+                "target_path_is_not_root did not raise for invalid value"
+            )

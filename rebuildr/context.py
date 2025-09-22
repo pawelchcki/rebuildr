@@ -46,13 +46,19 @@ class LocalContext(object):
             )
 
         logging.debug(f"Copying {src_path} to {dest_path}")
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        # Preserve file modification and creation times
-        shutil.copy2(src_path, dest_path)  # copy2 preserves metadata
+        try:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            # Preserve file modification and creation times
+            shutil.copy2(src_path, dest_path)  # copy2 preserves metadata
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to copy {src_path} to {dest_path}: {e}")
 
     def prepare_from_descriptor(self, descriptor: StableDescriptor):
         files_path = self.src_path()
-        files_path.mkdir(parents=True, exist_ok=True)
+        try:
+            files_path.mkdir(parents=True, exist_ok=True)
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to create files directory {files_path}: {e}")
 
         builders_path = self.root_dir
 
@@ -74,13 +80,23 @@ class LocalContext(object):
         for external in descriptor.inputs.external:
             if isinstance(external, StableGitHubCommitInput):
                 target_path = builders_path / external.target_path
-                target_path.mkdir(parents=True, exist_ok=True)
+                try:
+                    target_path.mkdir(parents=True, exist_ok=True)
+                except (OSError, IOError) as e:
+                    raise RuntimeError(
+                        f"Failed to create external directory {target_path}: {e}"
+                    )
 
                 git_better_clone(external.url, target_path, external.commit)
                 self.store_in_docker_current_builder(external.commit, target_path)
             elif isinstance(external, StableGitRepoInput):
                 target_path = builders_path / external.target_path
-                target_path.mkdir(parents=True, exist_ok=True)
+                try:
+                    target_path.mkdir(parents=True, exist_ok=True)
+                except (OSError, IOError) as e:
+                    raise RuntimeError(
+                        f"Failed to create external directory {target_path}: {e}"
+                    )
 
                 git_better_clone(external.url, target_path, external.commit)
                 self.store_in_docker_current_builder(external.commit, target_path)
@@ -90,10 +106,16 @@ class LocalContext(object):
 FROM scratch
 COPY / /"""
         dockerfile_path = self.builders_path() / "__internal_cachestore.Dockerfile"
-        self.builders_path().mkdir(parents=True, exist_ok=True)
+        try:
+            self.builders_path().mkdir(parents=True, exist_ok=True)
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to create builders directory: {e}")
 
-        with open(dockerfile_path, "w") as f:
-            f.write(dockerfile_content)
+        try:
+            with open(dockerfile_path, "w") as f:
+                f.write(dockerfile_content)
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to write dockerfile {dockerfile_path}: {e}")
         tag = f"x__internal_cachestore_{ref_key}"
         logging.debug(f"Storing {path} in {tag}")
         DockerCLIBuilder().build(

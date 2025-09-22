@@ -26,6 +26,19 @@ class TarContext(object):
         arcname = Path(str(arcname)).as_posix()
         self.tar.add(src_path, arcname=arcname)
 
+    def __del__(self):
+        """Clean up resources when object is destroyed"""
+        if hasattr(self, "tar") and self.tar:
+            try:
+                self.tar.close()
+            except Exception:
+                pass
+        if hasattr(self, "temp_file") and self.temp_file:
+            try:
+                self.temp_file.close()
+            except Exception:
+                pass
+
     def prepare_from_descriptor(self, descriptor: StableDescriptor):
         """Populate the internal tar file using the descriptor inputs.
 
@@ -44,11 +57,16 @@ class TarContext(object):
         # the resulting context can be fed directly to `docker build`.
         for builder in descriptor.inputs.builders:
             # StableFileInput is the only builder variant that carries file data
-            if hasattr(builder, "absolute_src_path") and hasattr(builder, "target_path"):
+            if hasattr(builder, "absolute_src_path") and hasattr(
+                builder, "target_path"
+            ):
                 self._add_file(builder.absolute_src_path, builder.target_path)
 
     def copy_to_file(self, path: Path):
-        self.tar.close()
-        shutil.copyfile(self.temp_file_path, path)
-        # reopen file
-        self.tar = tarfile.open(self.temp_file_path, "a:")
+        try:
+            self.tar.close()
+            shutil.copyfile(self.temp_file_path, path)
+            # reopen file
+            self.tar = tarfile.open(self.temp_file_path, "a:")
+        except (OSError, IOError, tarfile.TarError) as e:
+            raise RuntimeError(f"Failed to copy tar file to {path}: {e}")

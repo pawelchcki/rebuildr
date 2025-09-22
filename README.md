@@ -6,6 +6,24 @@ Work In progress
 
 See: REBUILDR_FORMAT.md for file format description
 
+## Installation
+
+Quick start:
+
+```bash
+# Via Docker (recommended)
+docker run --rm ghcr.io/pawelchcki/rebuildr/dist:latest tool/tar | tar x -C ~/.local/bin/
+
+# Via Nix
+nix profile install github:pawelchcki/rebuildr
+```
+
+For other installation methods, updates, and info on verifying your setup, refer to [INSTALL.md](INSTALL.md).
+
+## Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, coding style, and tips to get started.
+
 ## CLI Interface
 
 Rebuildr provides a command-line interface for parsing, building, and managing Docker images based on rebuildr descriptor files.

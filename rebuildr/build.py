@@ -33,64 +33,70 @@ class DockerCLIBuilder(object):
         else:
             dockerfile = root_dir / "Dockerfile"
         fd, iidfile = tempfile.mkstemp()
+        try:
+            # sort and uniq tags
+            tags = list(set(tags))
 
-        # sort and uniq tags
-        tags = list(set(tags))
+            command_builder = _CommandBuilder()
+            command_builder.add_params("--build-arg", buildargs)
+            command_builder.add_list("--cache-from", cache_from)
+            command_builder.add_arg("--file", dockerfile)
+            command_builder.add_flag("--force-rm", forcerm)
+            command_builder.add_flag("--no-cache", nocache)
+            command_builder.add_arg("--progress", self._progress)
+            command_builder.add_flag("--pull", pull)
+            do_load = True
+            # if load is true we can only build current single platform image
+            if do_load:
+                command_builder.add_flag("--load", True)
+            else:
+                command_builder.add_arg("--platform", platform)
+            for tag in tags:
+                command_builder.add_arg("--tag", tag)
+            command_builder.add_arg("--target", target)
+            for context in build_context or []:
+                command_builder.add_arg("--build-context", context)
+            command_builder.add_arg("--iidfile", str(iidfile))
+            args = command_builder.build([root_dir])
+            if self.quiet:
+                with subprocess.Popen(
+                    args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                ) as p:
+                    stdout, stderr = p.communicate()
+                    if p.wait() != 0:
+                        # TODO: add better error handling
+                        print(f"error building image: {dockerfile}")
+                        print("------- STDOUT ---------")
+                        print(stdout, end="")
+                        print("----------------")
+                        print()
+                        print("------- STDERR ---------")
+                        print(stderr, end="")
+                        print("----------------")
+            else:
+                with subprocess.Popen(
+                    args, stdout=sys.stderr.buffer, universal_newlines=True
+                ) as p:
+                    exit_code = p.wait()
+                    if exit_code != 0:
+                        raise RuntimeError(f"Builder exited with code {exit_code}")
 
-        command_builder = _CommandBuilder()
-        command_builder.add_params("--build-arg", buildargs)
-        command_builder.add_list("--cache-from", cache_from)
-        command_builder.add_arg("--file", dockerfile)
-        command_builder.add_flag("--force-rm", forcerm)
-        command_builder.add_flag("--no-cache", nocache)
-        command_builder.add_arg("--progress", self._progress)
-        command_builder.add_flag("--pull", pull)
-        do_load = True
-        # if load is true we can only build current single platform image
-        if do_load:
-            command_builder.add_flag("--load", True)
-        else:
-            command_builder.add_arg("--platform", platform)
-        for tag in tags:
-            command_builder.add_arg("--tag", tag)
-        command_builder.add_arg("--target", target)
-        for context in build_context or []:
-            command_builder.add_arg("--build-context", context)
-        command_builder.add_arg("--iidfile", str(iidfile))
-        args = command_builder.build([root_dir])
-        if self.quiet:
-            with subprocess.Popen(
-                args,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            ) as p:
-                stdout, stderr = p.communicate()
-                if p.wait() != 0:
-                    # TODO: add better error handling
-                    print(f"error building image: {dockerfile}")
-                    print("------- STDOUT ---------")
-                    print(stdout, end="")
-                    print("----------------")
-                    print()
-                    print("------- STDERR ---------")
-                    print(stderr, end="")
-                    print("----------------")
-        else:
-            with subprocess.Popen(
-                args, stdout=sys.stderr.buffer, universal_newlines=True
-            ) as p:
-                exit_code = p.wait()
-                if exit_code != 0:
-                    raise Exception(f"Builder exited with code {exit_code}")
+            try:
+                with open(str(iidfile)) as f:
+                    line = f.readline()
+                    if not line.startswith("sha256:"):
+                        raise RuntimeError("Invalid image ID format in iidfile")
+                    image_id = line.split(":")[1].strip()
+            except (OSError, IOError) as e:
+                raise RuntimeError(f"Failed to read iidfile {iidfile}: {e}")
 
-        with open(str(iidfile)) as f:
-            line = f.readline()
-            if not line.startswith("sha256:"):
-                raise Exception("stop")
-            image_id = line.split(":")[1].strip()
-
-        return image_id
+            return image_id
+        finally:
+            os.close(fd)
+            os.unlink(iidfile)
 
 
 class _CommandBuilder(object):
