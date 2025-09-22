@@ -1,0 +1,31 @@
+name: Publish Content-ID based distribution image
+on:
+  pull_request:
+jobs:
+  build-and-publish-dist:
+    name: Build & Publish Dist Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      # - name: Install Nix
+      #   uses: DeterminateSystems/nix-installer-action@v20
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        run: |
+          mkdir -p $HOME/.local/bin/;
+          docker run --rm ghcr.io/pawelchcki/rebuildr/dist:src-id-019ea034a8ab6e0357878e9df802541a3752fcf74b65bca2f8d1ad165b232a2b tool/tar | tar x -C $HOME/.local/bin/;
+          echo $HOME/.local/bin >> $GITHUB_PATH
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to ghcr.io
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+      - name: Build and push dist image with tag
+        run: |
+          REBUILDR_TAG="latest-prs" rebuildr load-py ci/dist/dist.rebuildr.py push-image

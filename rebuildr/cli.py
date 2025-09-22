@@ -7,7 +7,6 @@ from rebuildr.containers.util import (
     image_exists_in_registry,
     image_exists_locally,
     pull_image,
-    push_image,
 )
 
 
@@ -20,6 +19,7 @@ from rebuildr.stable_descriptor import (
     StableDescriptor,
     StableEnvironment,
     StableImageTarget,
+    StableInputs,
 )
 
 
@@ -105,12 +105,38 @@ def parse_build_args(args: list[str]) -> dict[str, str]:
     return build_args
 
 
-class BuildDockerResult:
+class BuildCtx:
     tags: list[str]
     content_id_tag: str | None
+    target: StableImageTarget
+    desc: StableDescriptor
+    env: StableEnvironment
+    inputs: StableInputs
 
-    def __init__(self, tags: list[str], content_id_tag: str):
-        self.tags = tags
+    def __init__(self, path: str, build_args: dict[str, str]):
+        desc = load_py_desc(path)
+        env = StableEnvironment.from_os_env(build_args)
+        if desc.targets is None or len(desc.targets) != 1:
+            raise ValueError(
+                "TODO:for now - Only one target is supported for docker build"
+            )
+        target = desc.targets[0]
+        if not isinstance(target, StableImageTarget):
+            raise ValueError(
+                "TODO:for now - Image target is supported for docker build"
+            )
+
+        content_id_tag = (
+            target.content_id_tag(desc.inputs, env)
+            if target.also_tag_with_content_id
+            else None
+        )
+        self.build_args = build_args
+        self.target = target
+        self.env = env
+        self.desc = desc
+        self.inputs = desc.inputs
+        self.tags = target.image_tags(desc.inputs, env)
         self.content_id_tag = content_id_tag
 
     def most_specific_tag(self) -> str:
@@ -119,71 +145,59 @@ class BuildDockerResult:
         else:
             return self.tags[0]
 
+    def _load_cached(self, fetch_if_not_local: bool = True) -> bool:
+        if self.content_id_tag and image_exists_locally(self.content_id_tag):
+            logging.info(f"Tag {self.content_id_tag} already exists")
+            self.tags = [self.content_id_tag]
+            return True
+        elif self.content_id_tag and image_exists_in_registry(self.content_id_tag):
+            logging.info(f"Tag {self.content_id_tag} already exists in registry")
+            if fetch_if_not_local:
+                logging.info(f"Fetching tag {self.content_id_tag} from registry")
+                pull_image(self.content_id_tag)
+            else:
+                logging.info(
+                    f"Skipping fetch of tag {self.content_id_tag} from registry"
+                )
+            self.tags = [
+                self.content_id_tag
+            ]  # when fetching from registry we should ignore the other tags
+            return True
+        return False
 
-# builds docker returns a list of tags associated with the build
-def build_docker(
-    path: str, build_args: dict[str, str], fetch_if_not_local: bool = True
-) -> BuildDockerResult:
-    desc = load_py_desc(path)
-    env = StableEnvironment.from_os_env(build_args)
+    def build(
+        self,
+        force_build: bool = False,
+        fetch_if_not_local: bool = True,
+        push: bool = False,
+        override_tags: list[str] = None,
+    ) -> None:
+        if self._load_cached(fetch_if_not_local) and not force_build:
+            return
 
-    if desc.targets is None or len(desc.targets) != 1:
-        raise ValueError(
-            "WIP - for now - Only one target is supported for docker build"
-        )
+        tags = self.tags
+        if override_tags is not None:
+            tags = override_tags
+        if len(tags) == 0:
+            raise ValueError("No tags specified")
 
-    target = desc.targets[0]
+        ctx = LocalContext.temp()
+        ctx.prepare_from_descriptor(self.desc)
+        dockerfile_path = ctx.root_dir / self.target.dockerfile
 
-    if not isinstance(target, StableImageTarget):
-        raise ValueError("WIP - for now - Image target is supported for docker build")
-
-    content_id_tag = (
-        target.content_id_tag(desc.inputs, env)
-        if target.also_tag_with_content_id
-        else None
-    )
-
-    if content_id_tag and image_exists_locally(content_id_tag):
-        logging.info(f"Tag {content_id_tag} already exists")
-        return content_id_tag
-    elif content_id_tag and image_exists_in_registry(content_id_tag):
-        logging.info(f"Tag {content_id_tag} already exists in registry")
-        if fetch_if_not_local:
-            logging.info(f"Fetching tag {content_id_tag} from registry")
-            pull_image(content_id_tag)
-        else:
-            logging.info(f"Skipping fetch of tag {content_id_tag} from registry")
-        return BuildDockerResult(tags=[content_id_tag], content_id_tag=content_id_tag)
-
-    tags = target.image_tags(desc.inputs, env)
-
-    if len(tags) == 0:
-        raise ValueError("No tags specified")
-
-    ctx = LocalContext.temp()
-    ctx.prepare_from_descriptor(desc)
-
-    builder = DockerCLIBuilder()
-
-    dockerfile_path = ctx.root_dir / target.dockerfile
-    target_platforms = None
-    do_load = False
-    if target.platform is not None:
-        target_platforms = target.platform.value
-        do_load = True
-    else:
         target_platforms = "linux/amd64,linux/arm64"
+        if self.target.platform is not None:
+            target_platforms = self.target.platform.value
 
-    builder.build(
-        root_dir=ctx.src_path(),
-        dockerfile=dockerfile_path,
-        buildargs=build_args,
-        tags=tags,
-        platform=target_platforms,
-        do_load=do_load,
-    )
-
-    return BuildDockerResult(tags=tags, content_id_tag=content_id_tag)
+        builder = DockerCLIBuilder()
+        builder.build(
+            root_dir=ctx.src_path(),
+            dockerfile=dockerfile_path,
+            buildargs=self.build_args,
+            tags=tags,
+            platform=target_platforms,
+            build_and_push=push,
+        )
 
 
 def build_tar(path: str, output: str):
@@ -203,10 +217,10 @@ def print_usage():
         "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] bazel-stable-metadata <stable-metadata-file> <stable-image-tag-file>"
     )
     print(
-        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] materialize-image"
+        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] materialize-image [--force-build]"
     )
     print(
-        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] push-image [<override-tag>]"
+        "  load-py <rebuildr-file> [build-arg=value build-arg2=value2 ...] push-image [--only-content-id-tag] [--force-build] [<override-tag>] ",
     )
     print("  load-py <rebuildr-file> build-tar <output>")
 
@@ -250,6 +264,9 @@ def parse_cli_parse_py(args):
     if len(args) == 0:
         parse_and_print_py(file_path, build_args)
         return
+    if any(arg in ("-h", "--help") for arg in args):
+        print_usage()
+        return
 
     if "bazel-stable-metadata" == args[0]:
         if len(args) < 2:
@@ -262,30 +279,51 @@ def parse_cli_parse_py(args):
         return
 
     if "materialize-image" == args[0]:
-        tags = build_docker(file_path, build_args)
-        print(tags.most_specific_tag())
+        # TODO: support build in place mode where buildx is used with the default driver - so that the image doesn't have to be transfered into the docker daemon
+        ctx = BuildCtx(file_path, build_args)
+        force_build = False
+        if "--force-build" in args:
+            force_build = True
+            args.remove("--force-build")
+
+        ctx.build(force_build=force_build, fetch_if_not_local=True)
+
+        print(ctx.most_specific_tag())
         return
 
     if "push-image" == args[0]:
+        only_content_id_tag = False
+        force_build = False
+        if "--only-content-id-tag" in args:
+            only_content_id_tag = True
+            args.remove("--only-content-id-tag")
+        if "--force-build" in args:
+            force_build = True
+            args.remove("--force-build")
+
         override_tag = None
         if len(args) > 1 and args[1] != "":
             override_tag = args[1]
 
-        tags = build_docker(file_path, build_args, fetch_if_not_local=False)
-        specific_tag = tags.most_specific_tag()
-        tags_to_push = tags.tags
+        ctx = BuildCtx(file_path, build_args)
+        tags_to_push = ctx.tags
+        specific_tag = ctx.most_specific_tag()
 
+        if only_content_id_tag:
+            tags_to_push = [ctx.content_id_tag]
         if override_tag is not None:
-            from rebuildr.containers.util import tag_image
-
-            tag_image(specific_tag, override_tag)
             tags_to_push = [override_tag]
             specific_tag = override_tag
 
-        for tag in tags_to_push:
-            push_image(tag, overwrite_in_registry=False)
-        print(specific_tag)
+        logging.debug(f"Pushing tags: {tags_to_push}")
 
+        ctx.build(
+            force_build=force_build,
+            fetch_if_not_local=True,
+            push=True,
+            override_tags=tags_to_push,
+        )
+        print(specific_tag)
         return
 
     if "build-tar" == args[0]:
@@ -294,10 +332,6 @@ def parse_cli_parse_py(args):
             return
         else:
             build_tar(file_path, args[1])
-        return
-
-    if args[0] == "-h" or args[0] == "--help":
-        print_usage()
         return
 
     logging.error(f"Unknown command: {args[0]}")
