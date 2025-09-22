@@ -22,7 +22,6 @@ jobs:
             exit 1
           fi
           nix flake check
-
   # Build and publish dist image with tag
   build-and-publish-dist:
     name: Build & Publish Dist Image
