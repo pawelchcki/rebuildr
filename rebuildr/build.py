@@ -27,6 +27,7 @@ class DockerCLIBuilder(object):
         target=None,
         build_context=None,
         do_load=False,
+        build_and_push=False,
     ):
         if dockerfile:
             if not dockerfile.is_absolute():
@@ -57,6 +58,8 @@ class DockerCLIBuilder(object):
             for context in build_context or []:
                 command_builder.add_arg("--build-context", context)
             command_builder.add_arg("--iidfile", str(iidfile))
+            if build_and_push:
+                command_builder.add_flag("--push", True)
             args = command_builder.build([root_dir])
             if self.quiet:
                 with subprocess.Popen(
@@ -84,19 +87,20 @@ class DockerCLIBuilder(object):
                     if exit_code != 0:
                         raise RuntimeError(f"Builder exited with code {exit_code}")
 
-            try:
-                with open(str(iidfile)) as f:
-                    line = f.readline()
-                    if not line.startswith("sha256:"):
-                        raise RuntimeError("Invalid image ID format in iidfile")
-                    image_id = line.split(":")[1].strip()
-            except (OSError, IOError) as e:
-                raise RuntimeError(f"Failed to read iidfile {iidfile}: {e}")
-
-            return image_id
+            # try:
+            #     with open(str(iidfile)) as f:
+            #         line = f.readline()
+            #         if not line.startswith("sha256:"):
+            #             raise RuntimeError("Invalid image ID format in iidfile")
+            #         image_id = line.split(":")[1].strip()
+            # except (OSError, IOError) as e:
+            #     raise RuntimeError(f"Failed to read iidfile {iidfile}: {e}")
+            # TODO: return image_id even in remote build
+            return None
         finally:
             os.close(fd)
-            os.unlink(iidfile)
+            if os.path.exists(iidfile):
+                os.unlink(iidfile)
 
 
 class _CommandBuilder(object):
