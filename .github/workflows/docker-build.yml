@@ -1,0 +1,32 @@
+name: Docker Build and Publish
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build-and-publish:
+    name: Build and Publish Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          cd ci/dist
+          nix shell path:../.. --command rebuildr load-py dist.rebuildr.py
