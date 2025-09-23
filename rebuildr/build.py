@@ -87,15 +87,6 @@ class DockerCLIBuilder(object):
                     if exit_code != 0:
                         raise RuntimeError(f"Builder exited with code {exit_code}")
 
-            # try:
-            #     with open(str(iidfile)) as f:
-            #         line = f.readline()
-            #         if not line.startswith("sha256:"):
-            #             raise RuntimeError("Invalid image ID format in iidfile")
-            #         image_id = line.split(":")[1].strip()
-            # except (OSError, IOError) as e:
-            #     raise RuntimeError(f"Failed to read iidfile {iidfile}: {e}")
-            # TODO: return image_id even in remote build
             return None
         finally:
             os.close(fd)

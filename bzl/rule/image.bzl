@@ -27,36 +27,43 @@ def build_copy_commands(work_dir, input_attrs):
         for f in target.files.to_list():
             root = target.label.package
 
-            # Get the path relative to the package
-            if f.is_source:
-                # Strip the root package path from the short_path if it's a prefix
-                path = f.short_path
-                if root != "" and path.startswith(root + "/"):
-                    path = path[len(root) + 1:]  # +1 for the slash
+            cp_opts = ""
+            if f.is_directory:
+                cp_opts = "-r"
 
-                # For source files, we need to preserve their path within the package
-                path_parts = path.split("/")
-                if len(path_parts) > 1:
-                    # Create parent directories if needed
-                    dir_path = ""
-                    for part in path_parts[:-1]:
-                        dir_path = dir_path + "/" + part if dir_path else part
-                        if dir_path not in created_dirs:
-                            copy_commands.append("mkdir -p {}/{}".format(work_dir.path, dir_path))
-                            created_dirs[dir_path] = True
+            # Strip the root package path from the short_path if it's a prefix
+            path = f.short_path
+            if root != "" and path.startswith(root + "/"):
+                path = path[len(root) + 1:]  # +1 for the slash
 
-                    # Copy the file to the appropriate subdirectory
-                    copy_commands.append("cp {} {}/{}".format(
-                        f.path,
-                        work_dir.path,
-                        "/".join(path_parts[:-1]),
-                    ))
-                else:
-                    # Files at the root level
-                    copy_commands.append("cp {} {}".format(f.path, work_dir.path))
+            is_external = f.short_path.startswith("../")
+
+            path_parts = path.split("/")
+            if is_external and len(path_parts) > 1:
+                path_parts = path_parts[1:]
+
+            if len(path_parts) > 1:
+                # Create parent directories if needed
+                dir_path = ""
+
+                for part in path_parts[:-1]:
+                    dir_path = dir_path + "/" + part if dir_path else part
+                    if dir_path not in created_dirs:
+                        copy_commands.append("mkdir -p {}/{}".format(work_dir.path, dir_path))
+                        created_dirs[dir_path] = True
+
+                # Copy the file to the appropriate subdirectory
+                copy_commands.append("cp {} {} {}/{}".format(
+                    cp_opts,
+                    f.path,
+                    work_dir.path,
+                    "/".join(path_parts[:-1]),
+                ))
             else:
-                # For generated files, we just copy them to the root of the work directory
-                copy_commands.append("cp {} {}".format(f.path, work_dir.path))
+                # Files at the root level
+                copy_commands.append("cp {} {} {}".format(cp_opts, f.path, work_dir.path))
+
+    # print("\n\n\n" + "\n".join(copy_commands) + "\n\n\n")
 
     return "\n".join(copy_commands)
 
