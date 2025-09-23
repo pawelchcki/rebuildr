@@ -31,11 +31,6 @@ def build_copy_commands(work_dir, input_attrs):
             if f.is_directory:
                 cp_opts = "-r"
 
-            print("f.short_path", f.short_path)
-            print("f.path", f.path)
-            print("f.is_directory", f.is_directory)
-            print("f.is_source", f.is_source)
-
             # Strip the root package path from the short_path if it's a prefix
             path = f.short_path
             if root != "" and path.startswith(root + "/"):
