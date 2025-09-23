@@ -58,7 +58,9 @@ class GitRepoInput:
 
 @dataclass
 class Inputs:
-    files: list[str | FileInput | GlobInput] = field(default_factory=list)
+    files: list[FileInput] | list[str | FileInput | GlobInput] = field(
+        default_factory=list
+    )
     builders: list[str | EnvInput | FileInput | ArgsInput | GlobInput] = field(
         default_factory=list
     )
@@ -67,8 +69,8 @@ class Inputs:
 
 @dataclass
 class Platform(Enum):
-    LINUX_AMD64 = "linux/amd64"
-    LINUX_ARM64 = "linux/arm64"
+    LINUX_AMD64 = "linux/amd64"  # type: ignore
+    LINUX_ARM64 = "linux/arm64"  # type: ignore
 
 
 @dataclass

@@ -1,0 +1,43 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("//:rules.bzl", "rebuildr_image", "rebuildr_materialize")
+
+genrule(
+    name = "copy_test_example_bzl_deps",
+    srcs = ["//bzl/test_example_bzl_deps"],
+    # avoid exporting directories https://bazel.build/reference/be/general avoid symlinks and directories
+    outs = [
+        "generated_subfolder/file_in_subdir.txt",
+        "generated_subfolder/test_example_bzl_deps.txt",
+    ],
+    cmd = """
+        mkdir -p $(RULEDIR)/generated_subfolder/
+        for f in $(locations //bzl/test_example_bzl_deps:test_example_bzl_deps); do
+            cp -r $$f $(RULEDIR)/generated_subfolder
+        done
+    """,
+)
+
+rebuildr_image(
+    name = "dependencies_mapping",
+    srcs = [
+        "dependencies_mapping.Dockerfile",
+        "example_file.txt",
+        ":copy_test_example_bzl_deps",
+        "//bzl/test_example_bzl_deps",
+        "@test_example_bzl_deps",
+        "@test_example_bzl_deps//:copy_test_example_bzl_deps",
+    ],
+    descriptor = "dependencies_mapping.rebuildr.py",
+)
+
+rebuildr_materialize(
+    name = "dependencies_mapping_materialized",
+    src = ":dependencies_mapping",
+)
+
+build_test(
+    name = "_dependencies_mappingtest",
+    targets = [
+        ":dependencies_mapping_materialized",
+    ],
+)

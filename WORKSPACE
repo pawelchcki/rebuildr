@@ -65,3 +65,8 @@ rules_oci_dependencies()
 load("@rules_oci//oci:repositories.bzl", "oci_register_toolchains")
 
 oci_register_toolchains(name = "oci")
+
+local_repository(
+    name = "test_example_bzl_deps",
+    path = "bzl/test_example_bzl_deps/external_repository",
+)

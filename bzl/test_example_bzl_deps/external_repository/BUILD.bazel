@@ -1,0 +1,24 @@
+filegroup(
+    name = "test_example_bzl_deps",
+    srcs = [
+        "external_subdir/file_in_subdir.txt",
+        "external_test_example_bzl_deps.txt",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "copy_test_example_bzl_deps",
+    srcs = [":test_example_bzl_deps"],
+    outs = [
+        "external_generated_subfolder/file_in_subdir.txt",
+        "external_generated_subfolder/external_test_example_bzl_deps.txt",
+    ],
+    cmd = """
+        mkdir -p $(RULEDIR)/external_generated_subfolder/
+        for f in $(locations //:test_example_bzl_deps); do
+            cp -r $$f $(RULEDIR)/external_generated_subfolder
+        done
+    """,
+    visibility = ["//visibility:public"],
+)
