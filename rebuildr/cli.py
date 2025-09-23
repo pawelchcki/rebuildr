@@ -170,13 +170,13 @@ class BuildCtx:
         force_build: bool = False,
         fetch_if_not_local: bool = True,
         push: bool = False,
-        override_tags: list[str] = None,
+        override_tags: list[str] = [],
     ) -> None:
         if self._load_cached(fetch_if_not_local) and not force_build:
             return
 
         tags = self.tags
-        if override_tags is not None:
+        if override_tags is not None and len(override_tags) > 0:
             tags = override_tags
         if len(tags) == 0:
             raise ValueError("No tags specified")
@@ -186,8 +186,11 @@ class BuildCtx:
         dockerfile_path = ctx.root_dir / self.target.dockerfile
 
         target_platforms = "linux/amd64,linux/arm64"
+        do_load = False
         if self.target.platform is not None:
             target_platforms = self.target.platform.value
+            # if only a single platform is specified then we can safely load
+            do_load = True
 
         builder = DockerCLIBuilder()
         builder.build(
@@ -196,6 +199,7 @@ class BuildCtx:
             buildargs=self.build_args,
             tags=tags,
             platform=target_platforms,
+            do_load=do_load,
             build_and_push=push,
         )
 

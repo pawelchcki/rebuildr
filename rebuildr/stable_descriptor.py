@@ -296,21 +296,31 @@ class StableDescriptor:
                     if glob_dep.root_dir is None
                     else root_dir / glob_dep.root_dir
                 )
+                prepend_path = PurePath(".")
+                if glob_dep.target_path is not None:
+                    prepend_path = make_inner_relative_path(
+                        PurePath(glob_dep.target_path)
+                    )
+
                 for path in glob.glob(
                     glob_dep.pattern,
                     root_dir=glob_root,
                     recursive=True,
                 ):
                     path = PurePath(path)
-                    absolute_path = glob_root / path
-                    if not absolute_path.exists():
-                        raise ValueError(f"File {absolute_path} does not exist")
+                    absolute_src_path = glob_root / path
 
-                    if absolute_path.is_file():
-                        target_path = make_inner_relative_path(PurePath(path))
+                    if not absolute_src_path.exists():
+                        raise ValueError(f"File {absolute_src_path} does not exist")
+
+                    if absolute_src_path.is_file():
+                        target_path = prepend_path / make_inner_relative_path(
+                            PurePath(path)
+                        )
                         stable_files.append(
                             StableFileInput(
-                                target_path=target_path, absolute_src_path=absolute_path
+                                target_path=target_path,
+                                absolute_src_path=absolute_src_path,
                             )
                         )
             elif isinstance(file_dep, str):
