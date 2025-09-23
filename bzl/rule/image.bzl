@@ -38,7 +38,6 @@ def build_copy_commands(work_dir, input_attrs):
 
             is_external = f.short_path.startswith("../")
 
-            # For source files, we need to preserve their path within the package
             path_parts = path.split("/")
             if is_external and len(path_parts) > 1:
                 path_parts = path_parts[1:]
