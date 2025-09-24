@@ -3,11 +3,27 @@ import shutil
 import socket
 import subprocess
 from pathlib import Path
-import urllib
+import urllib.request
 
 
 def is_docker_available() -> bool:
     return shutil.which("docker") is not None
+
+
+def is_docker_daemon_available() -> bool:
+    try:
+        command = [str(docker_bin()), "info"]
+        logging.info("Running docker command: {}".format(" ".join(command)))
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            timeout=10,
+        )
+        return True
+    except Exception as e:
+        logging.warning(f"Docker daemon is not available: {e}")
+        return False
 
 
 def docker_bin() -> Path:
@@ -27,10 +43,9 @@ def docker_image_exists_locally(image_tag: str) -> bool:
         return False
 
 
-def docker_image_exists_in_registry(image_tag: str) -> bool:
+def check_registry_availability(example_image_tag: str) -> bool:
     # check if external registry can be dns resolved before fetching manifest
-
-    hostname = image_tag.split("/")[0]
+    hostname = example_image_tag.split("/")[0]
     # hostname must have at least one dot to attempt to resolve
     if "." in hostname:
         logging.info(f"Attempting to resolve hostname {hostname}")
@@ -42,14 +57,29 @@ def docker_image_exists_in_registry(image_tag: str) -> bool:
 
         # send a http request using built in python library to the hostname with a 5 second timeout
         try:
-            urllib.request.urlopen(f"http://{hostname}", timeout=1)
-        except Exception:
-            logging.info(f"Could not resolve hostname {hostname} via http")
+            logging.info(f"Sending http request to {hostname}")
+            try:
+                urllib.request.urlopen(f"https://{hostname}", timeout=5)
+            except urllib.error.HTTPError as e:
+                if e.code not in (403, 404):
+                    raise
+        except Exception as e:
+            logging.info(f"Could not resolve hostname {hostname} via http: {e}")
             return False
+
+        logging.info(f"Successfully sent http request to {hostname}")
     else:
         logging.debug(
             f"Hostname {hostname} does not have a dot, skipping DNS resolution"
         )
+
+    return True
+
+
+def docker_image_exists_in_registry(image_tag: str) -> bool:
+    # check if external registry can be dns resolved before fetching manifest
+    if not check_registry_availability(image_tag):
+        return False
 
     # Use docker manifest inspect to check if image exists in registry
 

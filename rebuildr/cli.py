@@ -2,7 +2,9 @@ import json
 import logging
 import os
 from pathlib import Path
+import shutil
 from rebuildr.build import DockerCLIBuilder
+from rebuildr.containers.docker import check_registry_availability
 from rebuildr.containers.util import (
     image_exists_in_registry,
     image_exists_locally,
@@ -96,6 +98,16 @@ def parse_and_write_bazel_stable_metadata(
         )
 
 
+def is_truthy(value: str) -> bool:
+    return (
+        value is not None
+        and value != ""
+        and value != "0"
+        and value.lower() != "false"
+        and value.lower() != "no"
+    )
+
+
 def parse_build_args(args: list[str]) -> dict[str, str]:
     build_args = {}
     for arg in args:
@@ -131,7 +143,10 @@ class BuildCtx:
             if target.also_tag_with_content_id
             else None
         )
-        self.build_args = build_args
+
+        self.build_args = desc.inputs.build_args_dict(env)
+        logging.info(f"Build args: {self.build_args}")
+
         self.target = target
         self.env = env
         self.desc = desc
@@ -172,7 +187,8 @@ class BuildCtx:
         push: bool = False,
         override_tags: list[str] = [],
     ) -> None:
-        if self._load_cached(fetch_if_not_local) and not force_build:
+        if not force_build and self._load_cached(fetch_if_not_local):
+            logging.info(f"Image {self.content_id_tag} already exists")
             return
 
         tags = self.tags
@@ -305,6 +321,9 @@ def parse_cli_parse_py(args):
             force_build = True
             args.remove("--force-build")
 
+        if is_truthy(os.getenv("REBUILDR_FORCE_BUILD")):
+            force_build = True
+
         override_tag = None
         if len(args) > 1 and args[1] != "":
             override_tag = args[1]
@@ -319,7 +338,7 @@ def parse_cli_parse_py(args):
             tags_to_push = [override_tag]
             specific_tag = override_tag
 
-        logging.debug(f"Pushing tags: {tags_to_push}")
+        logging.debug(f"Attempting to build and push tags: {tags_to_push}")
 
         ctx.build(
             force_build=force_build,
@@ -328,6 +347,15 @@ def parse_cli_parse_py(args):
             override_tags=tags_to_push,
         )
         print(specific_tag)
+        return
+    if "check-target-registry-reachability" == args[0]:
+        ctx = BuildCtx(file_path, build_args)
+        specific_tag = ctx.most_specific_tag()
+        if check_registry_availability(specific_tag):
+            logging.info(f"Registry for image {specific_tag} is available")
+        else:
+            logging.info(f"Registry for image {specific_tag} is not available")
+            sys.exit(1)
         return
 
     if "build-tar" == args[0]:
@@ -342,8 +370,38 @@ def parse_cli_parse_py(args):
     print_usage()
 
 
+"""
+Python since 3.6 can automatically detect $HOME if its not set in the environment
+Since bazel unsets HOME to avoid leaking the users home directory to the build, this causes problems for git
+
+Additionally at least on OSX buildx stores transaction ids which fails in bazel, so as hack we copy the default buildx config to the temporaryBUILDX_CONFIG directory and
+"""
+
+
+def _hack_bazel():
+    # hack only when explicitly enabled
+    if "_REBUILDR_HACK_BAZEL" not in os.environ:
+        return
+
+    if "GIT_CONFIG_GLOBAL" not in os.environ:
+        os.environ["GIT_CONFIG_GLOBAL"] = str(Path.home() / ".gitconfig")
+
+    if "BUILDX_CONFIG" in os.environ:
+        default_buildx_config = Path.home() / ".docker" / "buildx"
+        new_buildx_config = Path(os.environ["BUILDX_CONFIG"])
+        if not new_buildx_config.exists():
+            new_buildx_config.mkdir(parents=True, exist_ok=True)
+
+        if default_buildx_config.exists():
+            shutil.copytree(
+                default_buildx_config, new_buildx_config, dirs_exist_ok=True
+            )
+
+
 def main():
     logging.basicConfig(level=logging.DEBUG)
+    _hack_bazel()
+
     parse_cli()
 
 

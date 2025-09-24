@@ -7,6 +7,7 @@ from rebuildr.containers.docker import (
     docker_push_image,
     docker_tag_image,
     is_docker_available,
+    is_docker_daemon_available,
 )
 
 
@@ -27,7 +28,7 @@ def image_exists_in_registry(image_tag: str) -> bool:
 
 
 def pull_image(image_tag: str):
-    if is_docker_available():
+    if is_docker_available() and is_docker_daemon_available():
         docker_pull_image(image_tag)
     else:
         logging.warning("Docker is not available to pull image")
