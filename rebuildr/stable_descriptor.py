@@ -2,7 +2,6 @@ from dataclasses import asdict, dataclass, field
 import glob
 import hashlib
 import json
-import logging
 import os
 from pathlib import Path, PurePath
 from typing import Optional
@@ -86,10 +85,14 @@ class StableBuildArgsInput(BaseInput):
     def sort_key(self) -> str:
         return self.key
 
-    def hash_update(self, hasher, env: StableEnvironment):
+    def value(self, env: StableEnvironment) -> str:
         value = env.get_build_arg(self.key)
         if value is None:
             value = self.default
+        return value
+
+    def hash_update(self, hasher, env: StableEnvironment):
+        value = self.value(env)
         if value:
             hasher.update(self.key.encode())
             hasher.update(value.encode())
@@ -105,6 +108,7 @@ class StableGitHubCommitInput(BaseInput):
         return self.commit
 
     def hash_update(self, hasher):
+        hasher.update(str(self.target_path).encode())
         hasher.update(self.commit.encode())
 
 
@@ -118,6 +122,7 @@ class StableGitRepoInput(BaseInput):
         return self.commit
 
     def hash_update(self, hasher):
+        hasher.update(str(self.target_path).encode())
         hasher.update(self.commit.encode())
 
 
@@ -143,7 +148,6 @@ class StableFileInput:
         except (OSError, IOError) as e:
             raise RuntimeError(f"Failed to stat file {self.absolute_src_path}: {e}")
 
-        logging.debug(f"hash_update {str(self.target_path)} with mode {mode}")
         if not self.ignore_target_path:
             hasher.update(str(self.target_path).encode())
         # if the mode is not the default 644 then include it in the hash - only to avoid updating tests
@@ -176,6 +180,9 @@ class StableInputs:
     external: list[StableGitHubCommitInput | StableGitRepoInput] = field(
         default_factory=list
     )
+
+    def build_args_dict(self, env: StableEnvironment) -> dict[str, str]:
+        return {build_arg.key: build_arg.value(env) for build_arg in self.build_args}
 
     def sha_sum(self, env: StableEnvironment):
         m = hashlib.sha256()

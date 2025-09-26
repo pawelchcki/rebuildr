@@ -33,13 +33,13 @@ def _rebuildr_push_impl(ctx):
     set -xe
     export REBUILDR_OVERRIDE_ROOT_DIR={work_dir}
     export BUILDX_CONFIG=$(mktemp -d)
+    export _REBUILDR_HACK_BAZEL=1
     trap "rm -rf $BUILDX_CONFIG" EXIT
     set -xe
 
     {env_declarations}
 
     # Run the rebuildr tool to push the image
-    find $REBUILDR_OVERRIDE_ROOT_DIR/
     {rebuildr} load-py {descriptor} {build_args_arg} push-image 
     """.format(
         rebuildr = shell.quote(ctx.executable._rebuildr_tool.short_path),
@@ -60,6 +60,7 @@ def _rebuildr_push_impl(ctx):
             executable = output,
             runfiles = runfiles,
         ),
+        rebuildr_info,
     ]
 
 rebuildr_push = rule(

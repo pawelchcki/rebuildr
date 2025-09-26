@@ -16,4 +16,10 @@ else
   exit 1
 fi
 
-PYTHONPATH=$SCRIPTPATH/rebuildr_impl $PYTHON_BINARY -m rebuildr.cli "$@"
+_REBUILDR_IMPL_DIR=$SCRIPTPATH/rebuildr_impl
+
+if [ -n "$REBUILDR_SRC_DIR" ]; then
+  _REBUILDR_IMPL_DIR=$REBUILDR_SRC_DIR
+fi
+
+PYTHONPATH=$_REBUILDR_IMPL_DIR $PYTHON_BINARY -m rebuildr.cli "$@"

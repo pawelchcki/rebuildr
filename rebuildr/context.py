@@ -1,5 +1,5 @@
 import logging
-from pathlib import Path
+from pathlib import Path, PurePath
 import shutil
 import tempfile
 
@@ -60,8 +60,6 @@ class LocalContext(object):
         except (OSError, IOError) as e:
             raise RuntimeError(f"Failed to create files directory {files_path}: {e}")
 
-        builders_path = self.root_dir
-
         for file in descriptor.inputs.files:
             dest_path = files_path / file.target_path
             src_path = file.absolute_src_path
@@ -69,7 +67,7 @@ class LocalContext(object):
 
         for file in descriptor.inputs.builders:
             if isinstance(file, StableFileInput):
-                dest_path = builders_path / file.target_path
+                dest_path = self.root_dir / file.target_path
                 src_path = file.absolute_src_path
                 LocalContext._copy_file(src_path, dest_path)
             elif isinstance(file, StableEnvInput):
@@ -79,18 +77,22 @@ class LocalContext(object):
 
         for external in descriptor.inputs.external:
             if isinstance(external, StableGitHubCommitInput):
-                target_path = builders_path / external.target_path
+                target_path = self.src_path() / external.target_path
                 try:
                     target_path.mkdir(parents=True, exist_ok=True)
                 except (OSError, IOError) as e:
                     raise RuntimeError(
                         f"Failed to create external directory {target_path}: {e}"
                     )
-
+                # TODO: improve caching in remote builders
+                # if not self.attempt_to_load_from_current_builder(
+                #     external.commit, target_path
+                # ):
                 git_better_clone(external.url, target_path, external.commit)
-                self.store_in_docker_current_builder(external.commit, target_path)
+            # self.store_in_docker_current_builder(external.commit, target_path)
+
             elif isinstance(external, StableGitRepoInput):
-                target_path = builders_path / external.target_path
+                target_path = self.src_path() / external.target_path
                 try:
                     target_path.mkdir(parents=True, exist_ok=True)
                 except (OSError, IOError) as e:
@@ -98,29 +100,58 @@ class LocalContext(object):
                         f"Failed to create external directory {target_path}: {e}"
                     )
 
+                # if not self.attempt_to_load_from_current_builder(
+                #     external.commit, target_path
+                # ):
                 git_better_clone(external.url, target_path, external.commit)
-                self.store_in_docker_current_builder(external.commit, target_path)
+                # self.store_in_docker_current_builder(external.commit, target_path)
+
+    def write_builders_file(self, path: str | PurePath, content: str):
+        file_path = self.builders_path() / path
+        try:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to create builders directory for {path}: {e}")
+        try:
+            with open(file_path, "w") as f:
+                f.write(content)
+        except (OSError, IOError) as e:
+            raise RuntimeError(f"Failed to write builders file {file_path}: {e}")
+        return file_path
+
+    def attempt_to_load_from_current_builder(self, ref_key, output_path: Path):
+        tag = f"x1__internal_cachestore_{ref_key}"
+        dockerfile_path = self.write_builders_file(
+            "__internal_cachestore_read.Dockerfile",
+            f"""FROM {tag} as cached""",
+        )
+
+        logging.debug(f"Attempting to load from {tag}")
+        temp_dir = tempfile.TemporaryDirectory()
+        try:
+            DockerCLIBuilder(quiet=True, quiet_errors=True).build(
+                root_dir=self.src_path(),
+                dockerfile=dockerfile_path,
+                output=f"type=local,dest={temp_dir.name}",
+            )
+        except RuntimeError:
+            return False
+
+        return True
 
     def store_in_docker_current_builder(self, ref_key, path: Path):
+        tag = f"x1__internal_cachestore_{ref_key}"
         dockerfile_content = """
-FROM scratch
-COPY / /"""
-        dockerfile_path = self.builders_path() / "__internal_cachestore.Dockerfile"
-        try:
-            self.builders_path().mkdir(parents=True, exist_ok=True)
-        except (OSError, IOError) as e:
-            raise RuntimeError(f"Failed to create builders directory: {e}")
+        FROM scratch as to_be_cached
+        COPY / /"""
+        dockerfile_path = self.write_builders_file(
+            "__internal_cachestore.Dockerfile", dockerfile_content
+        )
 
-        try:
-            with open(dockerfile_path, "w") as f:
-                f.write(dockerfile_content)
-        except (OSError, IOError) as e:
-            raise RuntimeError(f"Failed to write dockerfile {dockerfile_path}: {e}")
-        tag = f"x__internal_cachestore_{ref_key}"
         logging.debug(f"Storing {path} in {tag}")
-        DockerCLIBuilder().build(
+        DockerCLIBuilder(quiet=True).build(
             root_dir=path,
             dockerfile=dockerfile_path,
-            platform="linux/amd64",
-            tags=[tag],
+            # platform="linux/amd64",
+            output=f"type=image,name={tag}",
         )
