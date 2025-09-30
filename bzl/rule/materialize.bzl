@@ -14,16 +14,25 @@ def _rebuildr_materialize_impl(ctx):
     env_declarations = env_declarations_string(build_env)
 
     command = """
-    set -eux
-    
+    set -o pipefail
     export REBUILDR_OVERRIDE_ROOT_DIR={work_dir}
+    # verify registry can be reached - to quickly provide feedback if the registry is not reachable
+    
+    if ! {rebuildr} load-py {descriptor} {build_args_arg} check-target-registry-reachability; then
+        echo "Registry is not reachable, check your internet/VPN connection and try again"
+        exit 1
+    fi
+
+    # hack: rebuildr will copy files from $HOME to the new BUILDX_CONFIG directory to avoid not being able to write txn id
     export BUILDX_CONFIG=$(mktemp -d)
     trap "rm -rf $BUILDX_CONFIG" EXIT
+    export _REBUILDR_HACK_BAZEL=1
 
     {env_declarations}
 
     # Run the rebuildr tool to materialize the image
-    {rebuildr} load-py {descriptor} {build_args_arg} materialize-image | tee {output}
+    {rebuildr} load-py {descriptor} {build_args_arg} materialize-image  | tee {output}
+
     """.format(
         rebuildr = shell.quote(ctx.executable._rebuildr_tool.path),
         build_args_arg = build_args_arg,

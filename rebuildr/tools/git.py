@@ -4,6 +4,14 @@ import subprocess
 from typing import List
 
 
+def set_specific_timestamps_recursively(path: Path):
+    args = ["find", str(path), "-exec", "touch", "-t", "201010101111.00", "{}", "+"]
+    try:
+        subprocess.run(args, check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Failed to set timestamps recursively for {path}: {e}")
+
+
 def git_command(args: List[str], **kwargs):
     if kwargs.get("check") is None:
         kwargs["check"] = True
@@ -35,6 +43,7 @@ def git_better_clone(url: str, target_path: Path, ref: str):
         git_command(["remote", "add", "origin", url], cwd=str(target_path))
         git_command(["fetch", "origin", ref], cwd=str(target_path))
         git_checkout(target_path, ref, force=True)
+    set_specific_timestamps_recursively(target_path)
 
 
 def git_checkout(repo_path: Path, ref: str, force: bool = False):
