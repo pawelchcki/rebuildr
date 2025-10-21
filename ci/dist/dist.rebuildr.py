@@ -5,13 +5,17 @@ import os
 from rebuildr.descriptor import Descriptor, FileInput, GlobInput, ImageTarget, Inputs
 
 # Get tag from environment variable, default to "latest"
-tag = os.environ.get("REBUILDR_TAG", "latest")
+tag = os.environ.get("REBUILDR_DIST_TAG", "latest")
+repository = os.environ.get(
+    "REBUILDR_DIST_REPOSITORY", "ghcr.io/pawelchcki/rebuildr/dist"
+).lower()
+# lowercase the repository name to satisfy ghcr restrictions
 
 image = Descriptor(
     targets=[
         ImageTarget(
             dockerfile="dist.Dockerfile",
-            repository="ghcr.io/pawelchcki/rebuildr/dist",
+            repository=repository,
             tag=tag,
         )
     ],
